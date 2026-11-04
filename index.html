@@ -6,7 +6,7 @@
 <title>KOSAT</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Barlow:wght@500;600;700;800&family=Barlow+Condensed:wght@700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Barlow+Condensed:wght@700;800&display=swap" rel="stylesheet">
 <style>
 :root{
   /* Law-library palette: deep green, ivory and brass. Scoreboard on top; the wheel, the clue board or the question card in the middle; one brass button at the bottom. */
@@ -21,8 +21,8 @@
   --board:#2f604c;
   --good:#2e9d6a;
   --bad:#c8463d;
-  --display:'DM Serif Display',Georgia,'Times New Roman',serif;
-  --body:'Barlow',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --display:'Outfit',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --body:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
   --narrow:'Barlow Condensed','Arial Narrow',var(--body);
   color-scheme:dark;
 }
@@ -54,7 +54,7 @@ button{font:inherit;color:inherit}
 .stat.center{align-items:center}
 .stat.right{align-items:flex-end}
 .lbl{font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.val{font-family:var(--display);font-size:1.4rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.val{font-family:var(--display);font-weight:700;font-size:1.3rem;font-variant-numeric:tabular-nums;white-space:nowrap}
 .val.neg{color:#ff9a8f}
 .val.pop{animation:pop .4s ease}
 @keyframes pop{40%{transform:scale(1.25);color:var(--gold)}}
@@ -79,15 +79,15 @@ button{font:inherit;color:inherit}
 .hub{position:absolute;left:50%;top:50%;width:25%;height:25%;transform:translate(-50%,-50%);border-radius:50%;
   background:radial-gradient(circle at 35% 30%, #fbecc0 0%, var(--gold) 55%, #a8812c 100%);
   border:4px solid var(--ink);box-shadow:0 4px 0 #7d5f1e, 0 10px 26px rgba(0,0,0,.45);
-  font-family:var(--display);font-size:clamp(1rem, 4.6vw, 1.3rem);color:#3a2b06;cursor:pointer;padding:0}
+  font-family:var(--display);font-weight:800;letter-spacing:.04em;font-size:clamp(.9rem, 4.2vw, 1.15rem);color:#3a2b06;cursor:pointer;padding:0}
 .hub:active{transform:translate(-50%,-46%);box-shadow:0 1px 0 #7d5f1e}
 .hub:disabled{cursor:default}
 .pointer{position:absolute;left:50%;top:-1.5%;width:13%;height:15%;transform:translateX(-50%);transform-origin:50% 22%;filter:drop-shadow(0 3px 3px rgba(0,0,0,.5))}
 .pointer.tick{animation:nudge .12s ease-out}
 @keyframes nudge{40%{rotate:-16deg}100%{rotate:0deg}}
-.hint{margin:0;min-height:1.6em;font-family:var(--display);font-size:1.3rem;text-align:center;color:var(--muted)}
+.hint{margin:0;min-height:1.6em;font-family:var(--display);font-weight:600;font-size:1.15rem;text-align:center;color:var(--muted)}
 
-.big-btn{font-family:var(--display);font-size:1.5rem;letter-spacing:.01em;color:#2e2208;background:var(--gold);border:0;border-radius:999px;
+.big-btn{font-family:var(--display);font-weight:700;font-size:1.3rem;letter-spacing:.01em;color:#2e2208;background:var(--gold);border:0;border-radius:999px;
   padding:13px 44px;min-width:210px;cursor:pointer;box-shadow:0 5px 0 #9a7628, 0 12px 26px rgba(0,0,0,.3);transition:transform .08s, box-shadow .08s}
 .big-btn:active{transform:translateY(4px);box-shadow:0 1px 0 #9a7628}
 .big-btn:disabled{opacity:.45;cursor:default;transform:none}
@@ -100,11 +100,11 @@ button{font:inherit;color:inherit}
   font:800 clamp(.5rem, 2.35vw, .9rem)/1.02 var(--narrow);text-transform:uppercase;letter-spacing:0;overflow:hidden;hyphens:manual;-webkit-hyphens:manual;overflow-wrap:anywhere;text-wrap:balance}
 .tile{min-width:0;padding:0;border:0;border-radius:8px;cursor:pointer;
   background:linear-gradient(#336a53, #244c3c);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12), 0 3px 0 #10261d;
-  font-family:var(--display);font-size:clamp(.85rem, 3.8vw, 1.4rem);color:var(--gold);text-shadow:0 2px 0 #0b1c15}
+  font-family:var(--display);font-weight:700;font-size:clamp(.75rem, 3.4vw, 1.2rem);color:var(--gold);text-shadow:0 2px 0 #0b1c15}
 .tile:active{transform:translateY(2px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12), 0 1px 0 #10261d}
 .tile:disabled{background:#172b22;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);cursor:default;transform:none}
 .board-foot{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px}
-.board-foot .big-btn{font-size:1.15rem;padding:12px 28px;min-width:0}
+.board-foot .big-btn{font-size:1.05rem;padding:12px 28px;min-width:0}
 
 /* Question card */
 .card{--cat:#2fbf7a;width:100%;background:var(--card);color:var(--card-ink);border-radius:20px;border-top:10px solid var(--cat);
@@ -113,7 +113,7 @@ button{font:inherit;color:inherit}
 .card-head{position:sticky;top:0;z-index:2;display:flex;flex-direction:column;gap:10px;margin:-16px -16px 0;padding:14px 16px 10px;background:var(--card);border-radius:10px 10px 0 0}
 .card-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .chip{font:800 .85rem/1.15 var(--body);letter-spacing:.02em;background:var(--cat);color:var(--card-ink);padding:6px 12px;border-radius:999px}
-.timer-num{font-family:var(--display);font-size:1.35rem;font-variant-numeric:tabular-nums;color:#5d5f55}
+.timer-num{font-family:var(--display);font-weight:700;font-size:1.2rem;font-variant-numeric:tabular-nums;color:#5d5f55}
 .card.hurry .timer-num{color:var(--bad)}
 .timer{height:8px;background:#ebe4d2;border-radius:999px;overflow:hidden}
 .timer-fill{height:100%;width:100%;background:var(--cat);transform-origin:left center}
@@ -137,7 +137,7 @@ button{font:inherit;color:inherit}
 .ans.wrong{background:var(--bad);border-color:#a52b25;color:#fff;box-shadow:0 3px 0 #a52b25}
 .ans.right .key,.ans.wrong .key{background:rgba(255,255,255,.25);color:#fff}
 .ans.dim{opacity:.5}
-.feedback{margin:0;min-height:1.4em;font-family:var(--display);font-size:1.35rem;text-align:center}
+.feedback{margin:0;min-height:1.4em;font-family:var(--display);font-weight:700;font-size:1.2rem;text-align:center}
 .feedback.good{color:#7fdcae}
 .feedback.bad{color:#ff9a8f}
 .feedback small{display:block;margin-top:4px;font-family:var(--body);font-weight:600;font-size:1rem;color:var(--ink)}
@@ -147,13 +147,13 @@ button{font:inherit;color:inherit}
 .panel{width:min(100%, 420px);background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:24px 18px 20px;
   display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.5);animation:panelIn .3s ease-out}
 @keyframes panelIn{from{transform:scale(.92);opacity:0}}
-.logo{margin:0;font-family:var(--display);font-weight:400;font-size:clamp(3.4rem, 18vw, 4.6rem);line-height:.9;letter-spacing:.02em}
+.logo{margin:0;font-family:var(--display);font-weight:800;font-size:clamp(3.2rem, 17vw, 4.4rem);line-height:.9;letter-spacing:-.02em}
 .logo span{display:inline-block;text-shadow:0 3px 0 rgba(0,0,0,.3)}
 .logo .logo-sub{display:block;margin-top:.45em;font:800 .2em/1 var(--body);letter-spacing:.32em;color:var(--muted);text-shadow:none}
-.panel h2{margin:0;font-family:var(--display);font-weight:400;font-size:clamp(1.8rem, 9vw, 2.4rem);line-height:1;text-wrap:balance}
+.panel h2{margin:0;font-family:var(--display);font-weight:700;letter-spacing:-.01em;font-size:clamp(1.8rem, 9vw, 2.4rem);line-height:1;text-wrap:balance}
 .panel p{margin:0;font-size:1.05rem;line-height:1.4;color:var(--ink)}
 .panel .sub{color:var(--muted)}
-.pick-label{font-family:var(--display);font-size:1.15rem;color:var(--muted)}
+.pick-label{font-family:var(--display);font-weight:600;font-size:1.05rem;color:var(--muted)}
 .panel .deal-note{margin-top:-10px;font-size:.95rem}
 .modes{display:grid;gap:10px;width:100%}
 .mode-btn{display:grid;grid-template-columns:52px 1fr;gap:14px;align-items:center;width:100%;padding:14px;text-align:left;cursor:pointer;
@@ -167,20 +167,20 @@ button{font:inherit;color:inherit}
 .mode-icon.grid i{border-radius:3px;background:var(--board)}
 .mode-icon.grid i:nth-child(-n+3){background:var(--panel);border-bottom:3px solid var(--gold)}
 .mode-text{display:flex;flex-direction:column;gap:4px}
-.mode-title{font-family:var(--display);font-size:1.3rem;line-height:1.1}
+.mode-title{font-family:var(--display);font-weight:700;font-size:1.15rem;line-height:1.1}
 .mode-desc{font-size:.95rem;line-height:1.3;color:var(--muted)}
 .mode-best{font-size:.85rem;font-weight:700;color:var(--gold)}
 .best{font-size:.95rem;color:var(--muted)}
-.best b{font-family:var(--display);font-weight:400;color:var(--gold);font-variant-numeric:tabular-nums}
+.best b{font-family:var(--display);font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}
 .stats div{background:#142820;border-radius:14px;padding:12px 6px;display:flex;flex-direction:column;gap:6px;min-width:0}
-.stats .val{font-size:clamp(1.05rem, 5vw, 1.4rem)}
-.newbest{font-family:var(--display);color:var(--gold);font-size:1.25rem}
+.stats .val{font-size:clamp(1rem, 4.6vw, 1.3rem)}
+.newbest{font-family:var(--display);font-weight:700;color:var(--gold);font-size:1.1rem}
 .pick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
 .pick-btn{min-height:58px;padding:6px 8px;border:0;border-radius:14px;background:var(--c);color:var(--card-ink);font:800 .98rem/1.15 var(--body);cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,.35)}
 .pick-btn:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.35)}
 .crown-badge{width:64px;height:52px}
-.wager-amt{font-family:var(--display);font-size:clamp(2.4rem, 13vw, 3.2rem);line-height:1;color:var(--gold);font-variant-numeric:tabular-nums}
+.wager-amt{font-family:var(--display);font-weight:800;font-size:clamp(2.4rem, 13vw, 3.2rem);line-height:1;color:var(--gold);font-variant-numeric:tabular-nums}
 .wager-range{width:100%;height:32px;accent-color:var(--gold);cursor:pointer}
 .wager-ends{display:flex;justify-content:space-between;width:100%;margin-top:-10px;font-size:.85rem;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
 .wager-quick{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}
@@ -188,7 +188,7 @@ button{font:inherit;color:inherit}
 
 @media (max-height:620px){
   .wheel-wrap{width:min(100%, 46vh, 400px)}
-  .big-btn{padding:11px 36px;font-size:1.25rem}
+  .big-btn{padding:11px 36px;font-size:1.15rem}
 }
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms !important;transition:none !important}
@@ -797,7 +797,7 @@ button{font:inherit;color:inherit}
   // ---------- Wheel drawing ----------
   const SEG = 360 / 7;
   const wctx = el.wheel.getContext('2d'), bctx = el.bulbs.getContext('2d');
-  const DISPLAY_FONT = "'DM Serif Display', Georgia, 'Times New Roman', serif";
+  const DISPLAY_FONT = "Outfit, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
 
   function sizeCanvas(c){
     const r = c.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 3);
@@ -839,9 +839,9 @@ button{font:inherit;color:inherit}
       const maxW = outer - hubR - r * .06;
       let fs = W * .056;
       ctx.save(); ctx.translate(c, c); ctx.rotate(mid);
-      ctx.font = `${fs}px ${DISPLAY_FONT}`;
+      ctx.font = `700 ${fs}px ${DISPLAY_FONT}`;
       const widest = () => Math.max(...lines.map(l => ctx.measureText(l).width));
-      while(widest() > maxW && fs > 6){ fs -= .5; ctx.font = `${fs}px ${DISPLAY_FONT}`; }
+      while(widest() > maxW && fs > 6){ fs -= .5; ctx.font = `700 ${fs}px ${DISPLAY_FONT}`; }
       ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
       ctx.lineWidth = Math.max(2, fs * .24); ctx.strokeStyle = '#16241d';
       ctx.fillStyle = isCrown ? '#e2b857' : '#fbf8f0';
