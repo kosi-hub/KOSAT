@@ -1141,7 +1141,7 @@ button{font:inherit;color:inherit}
         S.wrong++;
         sfx.wrong();
         el.feedback.className = 'feedback bad';
-        const lead = i === -1 ? "Time's up!" : 'Not quite.';
+        const lead = i === -1 ? "Time's up, silly goose!" : 'Silly goose!';
         if(S.shieldOn){
           el.feedback.innerHTML = `${lead} Your Force Field saved your heart.<small></small>`;
           missLine(); renderHud();
@@ -1168,7 +1168,7 @@ button{font:inherit;color:inherit}
         S.score -= v; S.wrong++;
         sfx.wrong();
         el.feedback.className = 'feedback bad';
-        el.feedback.innerHTML = `${i === -1 ? "Time's up!" : 'Not quite.'} −${money(v)}<small></small>`;
+        el.feedback.innerHTML = `${i === -1 ? "Time's up, silly goose!" : 'Silly goose!'} −${money(v)}<small></small>`;
         missLine();
       }
       renderHud(); popScore();
