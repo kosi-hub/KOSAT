@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KOSAT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Barlow:wght@500;600;700;800&family=Barlow+Condensed:wght@700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Law-library palette: deep green, ivory and brass. Scoreboard on top; the wheel, the clue board or the question card in the middle; one brass button at the bottom. */
+  --stage:#13241d;
+  --panel:#1b3128;
+  --ink:#f4efe2;
+  --muted:#a7bbb0;
+  --gold:#e2b857;
+  --line:rgba(244,239,226,.13);
+  --card:#fbf8f0;
+  --card-ink:#1c1f1a;
+  --board:#2f604c;
+  --good:#2e9d6a;
+  --bad:#c8463d;
+  --display:'DM Serif Display',Georgia,'Times New Roman',serif;
+  --body:'Barlow',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --narrow:'Barlow Condensed','Arial Narrow',var(--body);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html,body{height:100%;margin:0}
+body{
+  background-color:var(--stage);
+  background-image:radial-gradient(ellipse 85% 55% at 50% 40%, #1f3a2e 0%, rgba(19,36,29,0) 72%);
+  color:var(--ink);
+  font-family:var(--body);
+  overflow:hidden;
+  -webkit-tap-highlight-color:transparent;
+}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid #fff;outline-offset:3px}
+
+.app{height:100%;max-width:560px;margin:0 auto;padding:12px 16px 16px;display:flex;flex-direction:column;gap:12px}
+
+/* Scoreboard */
+.hud{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:14px;min-height:64px;padding:10px 12px 10px 14px;background:var(--panel);border:1px solid var(--line);border-radius:16px}
+.hearts{display:flex;gap:3px}
+.heart{width:26px;height:26px;display:block}
+.heart path{fill:#e2675d;stroke:#e2675d;stroke-width:1.5}
+.heart.lost path{fill:transparent;stroke:#4e6b5f}
+.heart.hit{animation:hit .5s ease}
+@keyframes hit{0%{transform:scale(1)}30%{transform:scale(1.35) rotate(-10deg)}100%{transform:scale(1)}}
+.stat{display:flex;flex-direction:column;line-height:1;gap:3px}
+.stat.center{align-items:center}
+.stat.right{align-items:flex-end}
+.lbl{font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.val{font-family:var(--display);font-size:1.4rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.val.neg{color:#ff9a8f}
+.val.pop{animation:pop .4s ease}
+@keyframes pop{40%{transform:scale(1.25);color:var(--gold)}}
+.icon-btn{width:38px;height:38px;border-radius:12px;border:1px solid var(--line);background:transparent;display:grid;place-items:center;cursor:pointer}
+.icon-btn svg{width:20px;height:20px}
+
+/* Views */
+.view{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+#questionView{justify-content:flex-start;overflow-y:auto;padding-bottom:4px}
+#questionView > *{flex-shrink:0}
+#boardView{justify-content:flex-start;gap:12px}
+
+.progress{display:flex;align-items:center;gap:10px}
+.pips{display:flex;gap:6px}
+.pip{width:12px;height:12px;border-radius:50%;background:#27443a;border:1px solid #3a5c4f}
+.pip.on{background:var(--gold);border-color:var(--gold)}
+
+/* The wheel */
+.wheel-wrap{position:relative;width:min(100%, 52vh, 400px);aspect-ratio:1/1;flex:none}
+#bulbs{position:absolute;inset:0;width:100%;height:100%}
+#wheel{position:absolute;left:7.5%;top:7.5%;width:85%;height:85%;will-change:transform}
+.hub{position:absolute;left:50%;top:50%;width:25%;height:25%;transform:translate(-50%,-50%);border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, #fbecc0 0%, var(--gold) 55%, #a8812c 100%);
+  border:4px solid var(--ink);box-shadow:0 4px 0 #7d5f1e, 0 10px 26px rgba(0,0,0,.45);
+  font-family:var(--display);font-size:clamp(1rem, 4.6vw, 1.3rem);color:#3a2b06;cursor:pointer;padding:0}
+.hub:active{transform:translate(-50%,-46%);box-shadow:0 1px 0 #7d5f1e}
+.hub:disabled{cursor:default}
+.pointer{position:absolute;left:50%;top:-1.5%;width:13%;height:15%;transform:translateX(-50%);transform-origin:50% 22%;filter:drop-shadow(0 3px 3px rgba(0,0,0,.5))}
+.pointer.tick{animation:nudge .12s ease-out}
+@keyframes nudge{40%{rotate:-16deg}100%{rotate:0deg}}
+.hint{margin:0;min-height:1.6em;font-family:var(--display);font-size:1.3rem;text-align:center;color:var(--muted)}
+
+.big-btn{font-family:var(--display);font-size:1.5rem;letter-spacing:.01em;color:#2e2208;background:var(--gold);border:0;border-radius:999px;
+  padding:13px 44px;min-width:210px;cursor:pointer;box-shadow:0 5px 0 #9a7628, 0 12px 26px rgba(0,0,0,.3);transition:transform .08s, box-shadow .08s}
+.big-btn:active{transform:translateY(4px);box-shadow:0 1px 0 #9a7628}
+.big-btn:disabled{opacity:.45;cursor:default;transform:none}
+.ghost-btn{background:none;border:1px solid var(--line);border-radius:999px;padding:10px 18px;font-weight:700;font-size:.98rem;color:var(--ink);cursor:pointer}
+.ghost-btn:active{background:rgba(255,255,255,.06)}
+
+/* The clue board */
+.board{width:100%;flex:1;min-height:0;max-height:620px;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));grid-template-rows:auto repeat(5,minmax(42px,1fr));gap:5px}
+.bhead{display:flex;align-items:center;justify-content:center;text-align:center;min-height:48px;padding:6px 2px;border-radius:8px;background:var(--panel);border-bottom:4px solid var(--c);
+  font:800 clamp(.5rem, 2.35vw, .9rem)/1.02 var(--narrow);text-transform:uppercase;letter-spacing:0;overflow:hidden;hyphens:manual;-webkit-hyphens:manual;overflow-wrap:anywhere;text-wrap:balance}
+.tile{min-width:0;padding:0;border:0;border-radius:8px;cursor:pointer;
+  background:linear-gradient(#336a53, #244c3c);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12), 0 3px 0 #10261d;
+  font-family:var(--display);font-size:clamp(.85rem, 3.8vw, 1.4rem);color:var(--gold);text-shadow:0 2px 0 #0b1c15}
+.tile:active{transform:translateY(2px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12), 0 1px 0 #10261d}
+.tile:disabled{background:#172b22;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);cursor:default;transform:none}
+.board-foot{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.board-foot .big-btn{font-size:1.15rem;padding:12px 28px;min-width:0}
+
+/* Question card */
+.card{--cat:#2fbf7a;width:100%;background:var(--card);color:var(--card-ink);border-radius:20px;border-top:10px solid var(--cat);
+  padding:16px;display:flex;flex-direction:column;gap:14px;box-shadow:0 14px 34px rgba(0,0,0,.4);animation:rise .35s ease-out}
+@keyframes rise{from{transform:translateY(18px);opacity:.3}}
+.card-head{position:sticky;top:0;z-index:2;display:flex;flex-direction:column;gap:10px;margin:-16px -16px 0;padding:14px 16px 10px;background:var(--card);border-radius:10px 10px 0 0}
+.card-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.chip{font:800 .85rem/1.15 var(--body);letter-spacing:.02em;background:var(--cat);color:var(--card-ink);padding:6px 12px;border-radius:999px}
+.timer-num{font-family:var(--display);font-size:1.35rem;font-variant-numeric:tabular-nums;color:#5d5f55}
+.card.hurry .timer-num{color:var(--bad)}
+.timer{height:8px;background:#ebe4d2;border-radius:999px;overflow:hidden}
+.timer-fill{height:100%;width:100%;background:var(--cat);transform-origin:left center}
+.card.hurry .timer-fill{background:var(--bad)}
+.q{margin:2px 0;font-weight:800;font-size:clamp(1.25rem, 5.4vw, 1.6rem);line-height:1.2;text-wrap:balance}
+.q.stem{font-size:1.08rem;line-height:1.35;text-wrap:pretty}
+.q:focus{outline:none}
+.stim-label{margin:0 0 -8px;font:800 .7rem/1 var(--body);letter-spacing:.12em;text-transform:uppercase;color:#77786b}
+.stim{margin:0;white-space:pre-line;font:500 1.02rem/1.5 var(--body);color:#2a2d27}
+.stim.passage{padding:12px 14px;border-radius:12px;background:#f2eee2;font-size:.98rem}
+.why{margin:0;padding:12px 14px;border-radius:12px;background:#e9f3ec;border-left:4px solid var(--good);font:500 .98rem/1.45 var(--body);color:#22261f;scroll-margin-top:90px}
+.why.miss{background:#f8ebe8;border-left-color:var(--bad)}
+.why b{font-weight:800}
+.answers{display:grid;gap:10px}
+.ans{display:flex;align-items:center;gap:12px;width:100%;min-height:54px;padding:10px 14px;text-align:left;
+  font:600 1rem/1.3 var(--body);color:var(--card-ink);background:#fff;border:2px solid #e2d8c2;border-radius:14px;box-shadow:0 3px 0 #e2d8c2;cursor:pointer}
+.ans:active{transform:translateY(2px);box-shadow:0 1px 0 #e2d8c2}
+.ans:disabled{cursor:default;transform:none}
+.ans .key{flex:none;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font:800 .9rem/1 var(--body);background:#efe9da;color:#5f5c4e}
+.ans.right{background:var(--good);border-color:#167c4d;color:#fff;box-shadow:0 3px 0 #167c4d}
+.ans.wrong{background:var(--bad);border-color:#a52b25;color:#fff;box-shadow:0 3px 0 #a52b25}
+.ans.right .key,.ans.wrong .key{background:rgba(255,255,255,.25);color:#fff}
+.ans.dim{opacity:.5}
+.feedback{margin:0;min-height:1.4em;font-family:var(--display);font-size:1.35rem;text-align:center}
+.feedback.good{color:#7fdcae}
+.feedback.bad{color:#ff9a8f}
+.feedback small{display:block;margin-top:4px;font-family:var(--body);font-weight:600;font-size:1rem;color:var(--ink)}
+
+/* Overlays */
+.overlay{position:fixed;inset:0;z-index:10;display:grid;place-items:center;padding:16px;background:rgba(8,16,12,.78);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);overflow-y:auto}
+.panel{width:min(100%, 420px);background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:24px 18px 20px;
+  display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.5);animation:panelIn .3s ease-out}
+@keyframes panelIn{from{transform:scale(.92);opacity:0}}
+.logo{margin:0;font-family:var(--display);font-weight:400;font-size:clamp(3.4rem, 18vw, 4.6rem);line-height:.9;letter-spacing:.02em}
+.logo span{display:inline-block;text-shadow:0 3px 0 rgba(0,0,0,.3)}
+.logo .logo-sub{display:block;margin-top:.45em;font:800 .2em/1 var(--body);letter-spacing:.32em;color:var(--muted);text-shadow:none}
+.panel h2{margin:0;font-family:var(--display);font-weight:400;font-size:clamp(1.8rem, 9vw, 2.4rem);line-height:1;text-wrap:balance}
+.panel p{margin:0;font-size:1.05rem;line-height:1.4;color:var(--ink)}
+.panel .sub{color:var(--muted)}
+.pick-label{font-family:var(--display);font-size:1.15rem;color:var(--muted)}
+.panel .deal-note{margin-top:-10px;font-size:.95rem}
+.modes{display:grid;gap:10px;width:100%}
+.mode-btn{display:grid;grid-template-columns:52px 1fr;gap:14px;align-items:center;width:100%;padding:14px;text-align:left;cursor:pointer;
+  background:#142820;border:2px solid var(--line);border-radius:18px;box-shadow:0 4px 0 #0c1a14}
+.mode-btn:active{transform:translateY(3px);box-shadow:0 1px 0 #0c1a14}
+.mode-btn:hover{border-color:rgba(226,184,87,.6)}
+.mode-icon{width:52px;height:52px;border-radius:50%;
+  background:conic-gradient(#8fbf9a 0 51deg, #e3a66e 0 103deg, #e57f6f 0 154deg, #8aaedc 0 206deg, #c39bd3 0 257deg, #7d2f3c 0 309deg, #e9c85a 0 360deg);
+  box-shadow:0 0 0 3px var(--gold)}
+.mode-icon.grid{border-radius:10px;box-shadow:none;background:none;display:grid;grid-template-columns:repeat(3,1fr);gap:3px}
+.mode-icon.grid i{border-radius:3px;background:var(--board)}
+.mode-icon.grid i:nth-child(-n+3){background:var(--panel);border-bottom:3px solid var(--gold)}
+.mode-text{display:flex;flex-direction:column;gap:4px}
+.mode-title{font-family:var(--display);font-size:1.3rem;line-height:1.1}
+.mode-desc{font-size:.95rem;line-height:1.3;color:var(--muted)}
+.mode-best{font-size:.85rem;font-weight:700;color:var(--gold)}
+.best{font-size:.95rem;color:var(--muted)}
+.best b{font-family:var(--display);font-weight:400;color:var(--gold);font-variant-numeric:tabular-nums}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}
+.stats div{background:#142820;border-radius:14px;padding:12px 6px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.stats .val{font-size:clamp(1.05rem, 5vw, 1.4rem)}
+.newbest{font-family:var(--display);color:var(--gold);font-size:1.25rem}
+.pick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
+.pick-btn{min-height:58px;padding:6px 8px;border:0;border-radius:14px;background:var(--c);color:var(--card-ink);font:800 .98rem/1.15 var(--body);cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,.35)}
+.pick-btn:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.35)}
+.crown-badge{width:64px;height:52px}
+.wager-amt{font-family:var(--display);font-size:clamp(2.4rem, 13vw, 3.2rem);line-height:1;color:var(--gold);font-variant-numeric:tabular-nums}
+.wager-range{width:100%;height:32px;accent-color:var(--gold);cursor:pointer}
+.wager-ends{display:flex;justify-content:space-between;width:100%;margin-top:-10px;font-size:.85rem;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+.wager-quick{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}
+.btn-row{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:12px}
+
+@media (max-height:620px){
+  .wheel-wrap{width:min(100%, 46vh, 400px)}
+  .big-btn{padding:11px 36px;font-size:1.25rem}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;transition:none !important}
+}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="hud">
+    <div class="hearts" id="hearts" role="img" aria-label="3 lives left"></div>
+    <div class="stat center"><span class="lbl" id="midLbl">Level</span><span class="val" id="midVal">1</span></div>
+    <div class="stat right"><span class="lbl">Score</span><span class="val" id="score">0</span></div>
+    <button class="icon-btn" id="muteBtn" type="button" aria-label="Turn sound off"></button>
+  </header>
+
+  <section class="view" id="wheelView" aria-label="Wheel">
+    <div class="progress">
+      <span class="lbl">Next level</span>
+      <div class="pips" id="pips" role="img" aria-label="0 of 5 correct this level"></div>
+    </div>
+    <div class="wheel-wrap" id="wheelWrap">
+      <canvas id="bulbs" aria-hidden="true"></canvas>
+      <canvas id="wheel" role="img" aria-label="Category wheel: Assumptions, Strengthen and Weaken, Flaws, Inference, Reading Comp, Crown, Objection!"></canvas>
+      <svg class="pointer" id="pointer" viewBox="0 0 40 46" aria-hidden="true">
+        <path d="M20 44 L4 10 A16 16 0 0 1 36 10 Z" fill="#e2b857" stroke="#16241d" stroke-width="3" stroke-linejoin="round"/>
+        <circle cx="20" cy="13" r="5" fill="#16241d"/>
+      </svg>
+      <button class="hub" id="hubBtn" type="button" aria-label="Spin the wheel">SPIN</button>
+    </div>
+    <p class="hint" id="hint" aria-live="polite">Tap spin to get a question type</p>
+    <button class="big-btn" id="spinBtn" type="button">Spin</button>
+  </section>
+
+  <section class="view" id="boardView" aria-label="Clue board" hidden>
+    <div class="board" id="board"></div>
+    <div class="board-foot">
+      <span class="lbl" id="boardNote">Pick a question type and an amount</span>
+      <button class="ghost-btn" id="finishBtn" type="button">Skip to final</button>
+    </div>
+  </section>
+
+  <section class="view" id="questionView" aria-label="Question" hidden>
+    <div class="card" id="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="chip" id="catChip">Assumptions</span>
+          <span class="timer-num" id="timerNum" aria-label="Seconds left">90</span>
+        </div>
+        <div class="timer" aria-hidden="true"><div class="timer-fill" id="timerFill"></div></div>
+      </div>
+      <p class="stim-label" id="stimLabel" hidden>Passage</p>
+      <p class="stim" id="stimText" hidden></p>
+      <h2 class="q" id="qText" tabindex="-1"></h2>
+      <div class="answers" id="answers"></div>
+      <p class="why" id="why" hidden></p>
+    </div>
+    <p class="feedback" id="feedback" aria-live="polite"></p>
+    <button class="big-btn" id="nextBtn" type="button" hidden>Spin again</button>
+  </section>
+</main>
+
+<div class="overlay" id="startOverlay" role="dialog" aria-modal="true" aria-labelledby="logo">
+  <div class="panel">
+    <h1 class="logo" id="logo" aria-label="KOSAT, LSAT trivia">
+      <span style="color:#8fbf9a">K</span><span style="color:#e3a66e">O</span><span style="color:#e57f6f">S</span><span style="color:#8aaedc">A</span><span style="color:#c39bd3">T</span>
+      <span class="logo-sub">LSAT TRIVIA</span>
+    </h1>
+    <span class="pick-label">Choose how to play</span>
+    <p class="sub deal-note">5 LSAT question types plus one just for fun. Original LSAT-style questions, with an explanation after every answer.</p>
+    <div class="modes">
+      <button class="mode-btn" id="modeSpin" type="button">
+        <span class="mode-icon" aria-hidden="true"></span>
+        <span class="mode-text">
+          <span class="mode-title">Spin the wheel</span>
+          <span class="mode-desc">The wheel picks the question type, or you pick on the crown. 3 hearts. Every level brings harder questions and a faster clock.</span>
+          <span class="mode-best" id="bestSpinLine">Best: 0</span>
+        </span>
+      </button>
+      <button class="mode-btn" id="modeBoard" type="button">
+        <span class="mode-icon grid" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+        <span class="mode-text">
+          <span class="mode-title">Pick from the board</span>
+          <span class="mode-desc">Choose a question type and a dollar amount. Wrong answers cost money. Find the Daily Double, then bet in the final.</span>
+          <span class="mode-best" id="bestBoardLine">Best: $0</span>
+        </span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="pickOverlay" role="dialog" aria-modal="true" aria-labelledby="pickTitle" hidden>
+  <div class="panel">
+    <svg class="crown-badge" viewBox="0 0 64 52" aria-hidden="true">
+      <path d="M6 44 L6 12 L20 28 L32 6 L44 28 L58 12 L58 44 Z" fill="#e2b857" stroke="#16241d" stroke-width="3" stroke-linejoin="round"/>
+      <rect x="6" y="40" width="52" height="8" rx="2" fill="#c49a3c" stroke="#16241d" stroke-width="3"/>
+    </svg>
+    <h2 id="pickTitle">Crown!</h2>
+    <p class="sub">Pick any question type for this one.</p>
+    <div class="pick-grid" id="pickGrid"></div>
+  </div>
+</div>
+
+<div class="overlay" id="wagerOverlay" role="dialog" aria-modal="true" aria-labelledby="wagerTitle" hidden>
+  <div class="panel">
+    <p class="lbl" id="wagerKicker">Daily Double</p>
+    <h2 id="wagerTitle">Daily Double!</h2>
+    <p class="sub" id="wagerText"></p>
+    <output class="wager-amt" id="wagerAmt" for="wagerRange">$500</output>
+    <input class="wager-range" id="wagerRange" type="range" min="0" max="1000" step="100" value="500" aria-label="Your bet">
+    <div class="wager-ends"><span id="wagerMin">$0</span><span id="wagerMax">$1,000</span></div>
+    <div class="wager-quick">
+      <button class="ghost-btn" type="button" data-w="min">Lowest</button>
+      <button class="ghost-btn" type="button" data-w="half">Half</button>
+      <button class="ghost-btn" type="button" data-w="max">All in</button>
+    </div>
+    <button class="big-btn" id="wagerBtn" type="button">Lock it in</button>
+  </div>
+</div>
+
+<div class="overlay" id="levelOverlay" role="dialog" aria-modal="true" aria-labelledby="levelTitle" hidden>
+  <div class="panel">
+    <p class="lbl">Level up</p>
+    <h2 id="levelTitle">Level 2</h2>
+    <p id="levelText"></p>
+    <button class="big-btn" id="levelBtn" type="button">Keep going</button>
+  </div>
+</div>
+
+<div class="overlay" id="overOverlay" role="dialog" aria-modal="true" aria-labelledby="overTitle" hidden>
+  <div class="panel">
+    <h2 id="overTitle">Game over</h2>
+    <p class="sub" id="overNote" hidden></p>
+    <p class="newbest" id="newBest" hidden>New best score!</p>
+    <div class="stats">
+      <div><span class="lbl" id="stat1Lbl">Score</span><span class="val" id="stat1">0</span></div>
+      <div><span class="lbl" id="stat2Lbl">Level</span><span class="val" id="stat2">1</span></div>
+      <div><span class="lbl" id="stat3Lbl">Correct</span><span class="val" id="stat3">0</span></div>
+    </div>
+    <p class="best" id="overBest">Best score: <b>0</b></p>
+    <div class="btn-row">
+      <button class="big-btn" id="againBtn" type="button">Play again</button>
+      <button class="ghost-btn" id="switchBtn" type="button">Switch mode</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const reduced = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const store = {
+    get(k, d){ try{ const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); }catch(e){ return d; } },
+    set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+  };
+
+  // ---------- Categories & questions ----------
+  // 5 LSAT question types + 1 fun category. Every game uses all 6; colours belong to the 6 seats.
+  const CATS = {
+    assume:{ name:'Assumptions',         wheel:['ASSUMPTIONS'], board:'Assump\u00adtions' },
+    sw:    { name:'Strengthen & Weaken', wheel:['STRENGTHEN','& WEAKEN'], board:'Strength\u00aden & Weaken' },
+    flaw:  { name:'Flaws',               wheel:['FLAWS'] },
+    infer: { name:'Inference',           wheel:['INFERENCE'] },
+    rc:    { name:'Reading Comp',        wheel:['READING','COMP'] },
+    fun:   { name:'Objection!',          wheel:['OBJECTION!'], board:'Objec\u00adtion!' },
+    crown: { name:'Crown',               wheel:['CROWN'] }
+  };
+  const CAT_ORDER = ['assume','sw','flaw','infer','rc','fun'];
+  const SEAT_COLORS = ['#8fbf9a','#e3a66e','#e57f6f','#8aaedc','#c39bd3','#e9c85a'];
+  const CROWN_COLOR = '#7d2f3c';
+  // Seconds per question (LSAT pace is about 85 seconds per Logical Reasoning question)
+  const CAT_TIME = { assume:90, sw:90, flaw:90, infer:90, rc:150, fun:25 };
+
+  const PASSAGES = {
+    rc1:"In most criminal courts, a case is framed as a contest between the state and the accused, and the victim's role is limited to giving testimony. Restorative justice programs take a different view. They treat crime chiefly as harm done to people and relationships, and they bring offenders, victims and community members together to decide how that harm should be repaired. An offender might apologize, pay for damage or do work that benefits the victim's neighborhood.\n\nSupporters point to studies in which victims who took part reported less fear and anger than victims whose cases went through the courts alone. Some studies also find lower reoffending rates among participants. Critics respond that these programs usually accept only offenders who admit guilt and volunteer to take part, so participants may have been less likely to reoffend in the first place. The critics also worry that informal meetings can pressure victims into forgiveness they do not feel.\n\nNeither concern is fatal. Programs can be studied by comparing similar offenders, some of whom were randomly offered the chance to participate, and trained facilitators can make clear that victims owe no one forgiveness. What the critics have shown is not that restorative justice fails, but that its success must be measured carefully.",
+    rc2:"For much of the twentieth century, land managers in many grassland regions treated wildfire as a threat to be put out as quickly as possible. Ecologists now argue that this policy misunderstood how grasslands work. Grasses store most of their living tissue underground, so they regrow quickly after a fire. Tree and shrub seedlings, by contrast, keep their growing tissue above ground and are often killed by flames. Regular fires therefore keep grasslands open; where fires are suppressed, woody plants gradually move in.\n\nThis shift matters for more than appearance. Many grassland birds nest only in open country and disappear once shrubs take hold. Woody plants can also draw down groundwater, leaving less for streams.\n\nFor these reasons, many managers now set controlled burns. Yet controlled burns are not simply a return to natural conditions. Natural fires came at irregular intervals and in different seasons, while managers tend to burn on fixed schedules, usually in spring, when conditions are safest. Some ecologists suspect that this regularity favors a narrower set of plant species than natural fire did, and they urge managers to vary the timing of their burns.",
+    rc3:"Many of the best-known Victorian novels first reached readers not as books but in installments, published monthly or weekly over a year or more. Literary critics long treated this fact as a commercial detail with little bearing on the novels themselves. More recent scholars disagree. Because authors were often still writing while early installments were on sale, they could watch how readers responded and adjust. Characters who proved popular might be given larger roles, and plot lines that sales suggested were dull could be cut short.\n\nTo some critics, this makes serialized novels less unified works of art, shaped by the market rather than by a single vision. But that conclusion assumes that a novel's value depends on its having been planned in advance. Plays have always been revised in response to audiences, and few would say that this makes them lesser art. The installment format also shaped how the novels were built: each part needed its own small climax to bring readers back, which helps explain the strong chapter endings that readers still enjoy.\n\nSeen this way, serialization was not a limitation the great Victorian novels overcame, but one of the conditions that made them what they are."
+  };
+
+  // [difficulty 1-5, argument or passage ("@id" = a passage above, "" = none), question, correct answer, ...wrong answers, explanation]
+  const NA = "Which one of the following is an assumption on which the argument depends?";
+  const SA = "The conclusion follows logically if which one of the following is assumed?";
+  const WK = "Which one of the following, if true, most seriously weakens the argument?";
+  const ST = "Which one of the following, if true, most strengthens the argument?";
+  const PX = "Which one of the following, if true, most helps to resolve the apparent discrepancy described above?";
+  const FL = "The reasoning in the argument is flawed because the argument";
+  const MC = "Which one of the following most accurately expresses the main conclusion of the argument?";
+  const MBT = "If the statements above are true, which one of the following must also be true?";
+  const MSS = "Which one of the following is most strongly supported by the information above?";
+  const Q = {
+    assume:[
+      [1,"Marisol has been offered a spot on the varsity debate team. So she will be competing at the state tournament next spring.",NA,
+        "Marisol will accept the spot she has been offered.","Marisol is the strongest debater at her school.","The state tournament is held every spring.","Most members of the varsity team have competed at state before.","Marisol joined debate to improve her chances of getting into law school.",
+        "Negate it: if Marisol turns the spot down, the conclusion falls apart. That's the test for a necessary assumption. 'Every spring' is more than the argument needs; it only needs a tournament next spring."],
+      [1,"Every apartment in the Linden building has a dishwasher. So Theo's apartment has a dishwasher.",SA,
+        "Theo's apartment is in the Linden building.","Most apartments with dishwashers are in newer buildings.","Theo prefers apartments with dishwashers.","Some Linden apartments also have washing machines.","Theo's last apartment had a dishwasher.",
+        "The premise covers every Linden apartment. Put Theo's apartment in the Linden building and the conclusion is guaranteed."],
+      [1,"The city should replace its diesel buses with electric buses. Electric buses cost less to fuel and maintain than diesel buses, and they produce no tailpipe emissions.",NA,
+        "The benefits of electric buses are not outweighed by drawbacks such as their purchase price.","Electric buses are more comfortable for riders than diesel buses.","Most other cities have already switched to electric buses.","Diesel buses are noisier than electric buses.","The city's current buses are more than ten years old.",
+        "The argument lists only benefits. For 'should replace' to follow, the costs it ignores can't outweigh them. Negate this answer and the recommendation fails."],
+      [2,"Every novel on this year's shortlist was written by a first-time author. So none of the novels on the shortlist will win the Calder Prize.",SA,
+        "The Calder Prize is never awarded to a novel by a first-time author.","Most first-time authors are unknown to the Calder judges.","The Calder Prize has rarely gone to a shortlisted novel.","Some first-time authors have been nominated for the Calder Prize.","This year's shortlist is shorter than in past years.",
+        "Bridge the premise (shortlist → first-time author) to the conclusion (→ won't win). 'Never awarded to a first-time author' closes the gap. Words like 'rarely' and 'most' can't guarantee anything."],
+      [2,"Researchers found that people who drink green tea daily have lower rates of heart disease than people who do not. They concluded that green tea helps protect against heart disease.",NA,
+        "The difference in heart disease rates is not entirely explained by other habits that daily green tea drinkers share.","Green tea contains more antioxidants than any other drink.","Drinking more than three cups a day offers no extra benefit.","People who skip green tea are unaware of its health benefits.","Heart disease is the most common cause of death among adults.",
+        "This is correlation turned into causation. The conclusion needs the tea, not something else about tea drinkers, to be behind the difference. If other habits explained all of it, the conclusion collapses."],
+      [2,"Our store's sales fell 20 percent after the new highway bypass opened and diverted traffic away from Main Street. So if the town reopens the old exit to Main Street, our sales will return to their previous level.",NA,
+        "Reopening the old exit would bring back much of the traffic the bypass diverted.","The bypass was built mainly to reduce traffic on Main Street.","Other stores on Main Street saw their sales fall by more than 20 percent.","The town will reopen the old exit within the next year.","Most of the store's customers live outside of town.",
+        "The plan only works if the exit actually brings traffic back. Watch the trap: the conclusion is an 'if' statement, so it doesn't assume the town will really reopen the exit."],
+      [3,"All tenured professors at Hale University have published at least one book. Dr. Okafor has never published a book. Therefore, Dr. Okafor is not eligible to vote in faculty elections.",SA,
+        "Only tenured professors at Hale University are eligible to vote in faculty elections.","All tenured professors at Hale University are eligible to vote in faculty elections.","Most faculty who vote in elections have published more than one book.","Dr. Okafor is not a tenured professor at Hale University.","Some professors who have published books are not eligible to vote.",
+        "No book → not tenured (the contrapositive of the first premise). To reach 'not eligible,' you need 'not tenured → not eligible,' which is what 'only tenured professors are eligible' says. 'All tenured professors are eligible' points the arrow the wrong way."],
+      [3,"Critics say the new art museum's design is too modern for the historic district. But the design won an international architecture award last year. Clearly, the critics are mistaken.",NA,
+        "The award's judges considered how well a design fits its surroundings.","Most residents of the historic district approve of the design.","Modern designs win architecture awards more often than traditional ones.","The critics have no formal training in architecture.","The museum will attract more visitors than a traditional design would.",
+        "The critics' point is about fit with the district. The award only answers that if the judges weighed fit at all. Negate it, and the award says nothing about the critics' point."],
+      [3,"To cut costs, the company plans to replace its in-person training with online courses. Since online courses cost far less per employee, the plan will reduce the company's total training expenses.",NA,
+        "The switch will not create new expenses large enough to cancel out the lower cost per employee.","Employees learn just as well from online courses as from in-person training.","Online courses take less time to complete than in-person training.","The company spends more on training than its competitors do.","Most employees prefer online courses to in-person training.",
+        "A lower cost per person only lowers the total if nothing else drives costs up. 'Learn just as well' is the trap: the conclusion is about expenses, and people could learn a bit less while costs still fall."],
+      [3,"Some of the paintings in the auction were painted before 1900. Every painting in the auction is insured. Therefore, some insured paintings were painted by artists who are no longer living.",SA,
+        "Every painting made before 1900 was painted by an artist who is no longer living.","Most paintings made before 1900 are insured.","Some artists who are no longer living painted after 1900.","Every painting by an artist who is no longer living was made before 1900.","Some paintings in the auction were painted after 1900.",
+        "Some auction paintings are pre-1900, and all of them are insured. Link 'pre-1900' to 'artist no longer living' and the conclusion is locked in. The reversed version says nothing about pre-1900 paintings, so it doesn't help."],
+      [4,"A policy that cannot be enforced does more harm than good, since it teaches people that rules can be ignored. The city's ban on feeding pigeons cannot be enforced. So the ban should be repealed.",SA,
+        "Any policy that does more harm than good should be repealed.","Any policy that teaches people rules can be ignored is unenforceable.","Most residents ignore the ban on feeding pigeons.","Only policies that can be enforced should be adopted in the first place.","A policy should be repealed only if it does more harm than good.",
+        "The premises get you to 'the ban does more harm than good.' You need a bridge from there to 'should be repealed.' The 'only if' version points the wrong way: it gives a requirement for repeal, not a reason to repeal."],
+      [4,"Sleep researcher: Students who pull all-nighters before exams score lower, on average, than students who sleep normally. Some say this is just because weaker students are more likely to cram. But even among students with the same grade-point average, those who pulled all-nighters scored lower. So lack of sleep itself lowers exam scores.",NA,
+        "Among students with the same grade-point average, those who pulled all-nighters had not generally studied the material less than the others.","Grade-point average is the best available measure of a student's ability.","Students who sleep normally before exams also sleep normally the rest of the semester.","Most students who pull all-nighters do so because of poor time management.","Students who pull all-nighters would score even lower on afternoon exams.",
+        "GPA controls for ability, but crammers could still have been less prepared for this exam. The argument needs that not to be true, or preparation, not sleep, could explain the gap. 'Best available measure' is stronger than the argument needs."],
+      [4,"Ethicist: A journalist who publishes a leaked document does something wrong if publishing it predictably puts lives at risk. Since the document Reyes published named undercover informants, Reyes did something wrong.",SA,
+        "Publishing a document that names undercover informants predictably puts lives at risk.","Journalists should verify leaked documents before publishing them.","Reyes knew the document named undercover informants.","Some leaked documents can be published without putting any lives at risk.","Most journalists would refuse to publish a document that named informants.",
+        "The principle says: predictably puts lives at risk → wrong. The argument never shows that naming informants does that. Supply that link and the conclusion follows. Knowing what was in the document wouldn't be enough on its own."],
+      [5,"Economist: When the government taxed sugary drinks, sales of those drinks fell 15 percent. Some say people simply bought them in neighboring regions without the tax. But sales in those regions rose by only 2 percent. So most of the drop reflects people actually drinking fewer sugary drinks.",NA,
+        "Before the tax, the neighboring regions did not sell vastly more sugary drinks than the taxed region did.","The tax made sugary drinks noticeably more expensive.","Sugary drink sales in the neighboring regions had been rising before the tax.","Most people in the taxed region rarely travel to neighboring regions.","People who stopped buying sugary drinks mostly switched to water.",
+        "The argument compares percentages from two different markets. A 2 percent rise in a much bigger market could equal the whole 15 percent drop. So it needs the neighboring markets not to be vastly bigger."],
+      [5,"Paleontologist: The fossilized dinosaur eggs found at the site were all arranged in tight circular clusters. Modern birds that arrange their eggs this way also sit on their nests to warm them. So the dinosaurs that laid these eggs probably sat on their nests.",NA,
+        "The circular arrangement was produced by the dinosaurs that laid the eggs.","All modern birds that sit on their nests arrange their eggs in circles.","The dinosaurs that laid these eggs were direct ancestors of modern birds.","No dinosaur species buried its eggs in the ground.","The site held more eggs than any other known dinosaur nesting site.",
+        "The argument treats the arrangement as a parenting behavior, like birds'. That only works if the dinosaurs made the arrangement. If water or shifting soil formed the clusters later, the comparison means nothing. Ancestry isn't required for the comparison to work."],
+      [5,"Because a new reading program raised average test scores at the twelve schools that tried it, the district plans to adopt it at all of its schools. The district expects the program to raise average scores at the remaining schools as well.",NA,
+        "The schools that tried the program did not have some special feature that made it work there but is missing at the other schools.","The program raised scores at every one of the twelve schools.","Teachers at the other schools will prefer the new program to their current one.","The program costs less than the district's current reading program.","Scores at the twelve schools would not have risen at all without the program.",
+        "Results from a sample only carry over if the sample is representative. 'Every one of the twelve' is too strong, since an average can rise without every school improving. 'Not at all' is too strong too: the program just needs to have caused some of the rise."]
+    ],
+    sw:[
+      [1,"The number of people visiting Lakeside Park has doubled since the city installed new lighting along its paths. Clearly, the lighting is what drew the new visitors.",WK,
+        "Around the time the lighting went in, the park began hosting a free outdoor concert series.","The new lighting uses energy-efficient bulbs.","Many visitors to the park come in the evening.","The city plans to install similar lighting in other parks.","Lakeside Park is the largest park in the city.",
+        "A different cause that started at the same time could explain the jump in visitors, so the lighting may not be responsible."],
+      [1,"Restaurant owner: Since we added photos to our menu, customers order appetizers more often. The photos must be encouraging people to try them.",ST,
+        "Orders rose only for the appetizers that were given photos.","The restaurant also raised the prices of its main courses.","Most customers say they prefer menus without photos.","The photos were taken by a professional photographer.","Other restaurants on the street don't use menu photos.",
+        "If only the pictured appetizers sold more, that points straight at the photos and rules out a general rise in appetite. A price change on main courses is a rival explanation, so it weakens."],
+      [1,"Over the past year, the number of car accidents in Millbrook dropped sharply. Yet over the same period, the number of insurance claims for car accidents in Millbrook went up.",PX,
+        "A new law began requiring that every accident, even a minor one, be reported to insurers.","Millbrook lowered the speed limit on most of its roads last year.","Car insurance in Millbrook costs more than in neighboring towns.","Most accidents in Millbrook happen during rush hour.","The number of cars registered in Millbrook stayed about the same.",
+        "The right answer explains both facts at once: fewer accidents, but more of them now become claims. A lower speed limit explains only the drop in accidents."],
+      [2,"A survey of members of the Riverside Running Club found that 80 percent prefer running shoes with extra cushioning. So most runners in the country prefer cushioned shoes.",WK,
+        "The club was founded by a company that makes cushioned running shoes and gives members discounts on them.","Cushioned shoes cost more than other running shoes.","Some club members run more than 50 miles a week.","Many runners own more than one pair of running shoes.","The survey was conducted online.",
+        "The argument generalizes from one club. If the club is tied to a cushioned-shoe brand, its members aren't representative of runners nationwide."],
+      [2,"Biologist: Frog populations in the Ashby wetlands have declined sharply over the past decade. Over the same period, a fungus known to kill frogs has spread through the region. The fungus is probably the main cause of the decline.",ST,
+        "In nearby wetlands the fungus has not reached, frog populations have stayed steady.","The fungus also infects some species of salamanders.","Frogs in the Ashby wetlands eat mainly insects.","The Ashby wetlands are larger than most wetlands in the region.","Several frog species have also declined in other parts of the world.",
+        "Similar wetlands without the fungus show no decline, which makes the fungus the likely difference-maker. Declines elsewhere in the world would hint at some other cause."],
+      [2,"To reduce lateness, Delgado Corp. began letting employees at its main office choose their own start times. Since then, late arrivals have fallen by half. Managers concluded that flexible start times reduce lateness.","Which one of the following would be most useful to know in evaluating the managers' conclusion?",
+        "Whether late arrivals also fell at the company's other offices, which kept fixed start times","Whether employees prefer starting earlier or later in the day","Whether Delgado's competitors offer flexible start times","Whether most employees live within ten miles of the office","Whether late arrivals were more common on Mondays",
+        "If lateness also fell where hours stayed fixed, something else is driving the drop. If it didn't, the flexible schedule looks responsible. Either answer changes how strong the argument is."],
+      [3,"Transit official: Ridership on Route 9 has fallen for three straight years. To win riders back, we will cut Route 9 fares by 25 percent. Since cheaper fares attract riders, ridership on Route 9 will rise.",WK,
+        "Surveys show most people who stopped riding Route 9 did so because its buses became much less frequent.","The fare cut will reduce the agency's revenue from Route 9.","Route 9 runs through several of the city's busiest neighborhoods.","Ridership on several other routes has also fallen.","The agency cut fares on a different route two years ago.",
+        "If riders left because buses got less frequent, a cheaper fare doesn't fix the real problem. Lost revenue is a cost, but it doesn't touch the prediction about ridership."],
+      [3,"Tenants in the Orchard Street building asked the landlord to repaint the hallways. She refused, saying the paint is in fine condition. But she recently repainted the hallways in her other building, where the paint was in similar condition. So she should repaint the Orchard Street hallways.","Which one of the following principles, if valid, most helps to justify the reasoning above?",
+        "A landlord should treat tenants in similar situations in similar ways.","A landlord should do whatever most of her tenants request.","A landlord should repaint hallways whenever the paint is in poor condition.","Tenants should not have to pay for repairs to shared spaces.","A landlord who refuses a request must explain why.",
+        "The argument's whole point is consistency: she repainted similar hallways elsewhere. A principle about treating like cases alike is exactly what it needs. The 'poor condition' principle doesn't apply, since the paint is described as fine."],
+      [3,"When the town of Fairview added bike lanes to its main avenue, the number of bicycle accidents on the avenue rose. Yet city officials say the bike lanes made cycling on the avenue safer.",PX,
+        "After the lanes were added, the number of people cycling on the avenue grew to five times its previous level.","Most bicycle accidents on the avenue happen at intersections.","Officials had promised voters the lanes would improve safety.","Drivers on the avenue now drive more slowly than before.","Several other towns have recently added bike lanes.",
+        "More accidents in total can still mean a lower accident rate if far more people are riding. That explains both facts."],
+      [3,"Some economists predict that raising the minimum wage in Port City will lead businesses to cut jobs. But when nearby Dalton raised its minimum wage by the same amount two years ago, employment there did not fall. So raising Port City's minimum wage probably will not lead to job cuts.",ST,
+        "Dalton's and Port City's economies have similar mixes of industries and similar wage levels.","Dalton's employment grew faster before its raise than after it.","Port City's businesses are, on average, larger than Dalton's.","Economists disagree about the effects of minimum-wage increases.","Dalton's minimum wage is now higher than Port City's.",
+        "An argument by analogy is only as strong as the match between the two cases. Showing the cities' economies are alike makes Dalton a better guide. Slower growth after the raise would hint that it did hurt."],
+      [4,"Nutritionist: In a ten-year study, participants who ate breakfast every day gained less weight than those who regularly skipped it. So eating breakfast helps prevent weight gain.",WK,
+        "Many participants started skipping breakfast because they had begun gaining weight and wanted to cut calories.","Participants who ate breakfast daily were also more likely to drink coffee.","Some daily breakfast eaters still gained a lot of weight.","The study included participants of many different ages.","Breakfast foods vary widely in how many calories they contain.",
+        "This flips cause and effect: gaining weight led people to skip breakfast, not the other way around. A few breakfast eaters gaining weight doesn't touch the average."],
+      [4,"Archaeologist: Pottery found at the Kova site is decorated with a spiral pattern that otherwise appears only on pottery from the island of Teles, 300 miles away. So the people at Kova probably traded with people from Teles.",ST,
+        "Chemical tests show that the clay in the Kova pottery came from Teles.","Spiral patterns are among the most common designs in ancient pottery.","The Kova site was occupied for more than 500 years.","People on Teles also made jewelry from shells.","Teles was settled earlier than the Kova site.",
+        "If the pots were made of Teles clay, they physically came from Teles. That strongly supports contact through trade rather than two groups inventing the same pattern. Spirals being common worldwide would weaken the argument."],
+      [4,"Hospital A has a higher death rate among its surgery patients than Hospital B does. Yet Hospital A's surgeons are widely regarded as more skilled than Hospital B's.",PX,
+        "Hospital B sends its most severe cases to Hospital A.","Hospital A performs more surgeries each year than Hospital B.","Hospital B's surgeons have more years of experience, on average.","Hospital A's surgeons are paid more than Hospital B's.","Both hospitals use the same surgical equipment.",
+        "If A takes the hardest cases, a higher death rate fits with more skilled surgeons. Doing more surgeries doesn't change the rate on its own."],
+      [5,"Since the city began fining drivers who block bike lanes, the number of these fines issued each month has steadily declined. This shows that drivers are blocking bike lanes less often.",WK,
+        "The number of officers assigned to enforce the rule has been cut each month since the program began.","The fine is higher than the fine for most parking violations.","Most of the fines were issued downtown.","Some drivers who were fined said they hadn't noticed the bike lane.","Bike lanes have been added to several new streets since the program began.",
+        "Fewer fines could just mean fewer officers writing them. The argument treats the number of fines as a measure of behavior, and this answer breaks that link. New lanes with falling fines would actually help the argument."],
+      [5,"Political scientist: Countries with more newspapers per person tend to have less government corruption. Some say this is because a free press exposes corruption. But this cannot be right: in many of the least corrupt countries, newspapers rarely run stories about corruption.",WK,
+        "Officials in countries with many newspapers avoid corruption because they expect any wrongdoing would be reported.","Some countries with few newspapers per person also have very little corruption.","In highly corrupt countries, newspapers are often owned by officials.","Most people in countries with many newspapers also get news from television.","Some newspapers mainly report on corruption in other countries.",
+        "The political scientist reads 'few corruption stories' as 'the press isn't doing anything.' But if the threat of exposure stops officials from being corrupt in the first place, the press works even when there's little to report."],
+      [5,"When a popular brand of headphones went on sale at 40 percent off, the store's total revenue from headphones went up, even though the store sold no more of that brand than usual.",PX,
+        "Shoppers drawn in by the sale bought other, higher-priced headphones at full price.","The brand on sale is the store's best-selling headphone brand.","The sale was heavily advertised on social media.","Most customers who bought the brand on sale had bought it before.","Other stores in the area did not put the brand on sale.",
+        "Selling the same number of that brand at 40 percent off brings in less money from it, so the extra revenue had to come from other headphones. Being the best-selling brand makes the puzzle worse, not better."]
+    ],
+    flaw:[
+      [1,"My uncle smoked a pack of cigarettes a day and lived to 95. So smoking can't be as bad for your health as doctors say.",FL,
+        "draws a general conclusion from a single example","attacks the doctors' character instead of their claims","assumes that what is true of a group is true of each member","uses the word 'health' in two different senses","simply restates its premise as its conclusion",
+        "One long-lived smoker can't outweigh large studies. This is a hasty generalization from a single case."],
+      [1,"Senator Ruiz argues that the state should raise the gas tax to fund road repairs. But Ruiz owns a construction company that would profit from the repairs. So her argument should be rejected.",FL,
+        "attacks the person making the argument rather than the argument itself","draws a conclusion from too small a sample","confuses a cause with an effect","assumes a claim is true because it hasn't been proven false","relies on an appeal to popular opinion",
+        "Ruiz's possible motive doesn't show her reasoning is wrong. This is an ad hominem attack: it goes after her, not her claim."],
+      [1,"Since the town installed red-light cameras, the number of traffic tickets issued has tripled. So the cameras have made the town's drivers more reckless.",FL,
+        "overlooks the possibility that the cameras are catching violations that used to go unnoticed","assumes the town's drivers are typical of drivers everywhere","attacks the motives of the people who installed the cameras","uses the word 'reckless' in two different senses","treats a requirement as if it were a guarantee",
+        "More tickets doesn't mean more bad driving. The cameras could just be catching what was already happening."],
+      [2,"To get into the honors program, a student must have a GPA of at least 3.7. Jordan has a 3.9 GPA. So Jordan will get into the honors program.",FL,
+        "treats something required for getting into the program as if it guaranteed getting in","assumes all students with high GPAs want to join the honors program","draws a conclusion about a group from one member","uses a key term in two different senses","confuses an effect with its cause",
+        "'Must have' signals a necessary condition. Meeting it doesn't mean Jordan is admitted; other requirements could still keep him out."],
+      [2,"Each member of the orchestra is an outstanding musician. Therefore, the orchestra must be an outstanding orchestra.",FL,
+        "assumes that what is true of each part is true of the whole","assumes that what is true of the whole is true of each part","relies on the opinion of an unqualified authority","reaches a conclusion that contradicts one of its premises","overlooks that some musicians play more than one instrument",
+        "Great individual players can still make a poor ensemble if they don't play well together. That's a part-to-whole error."],
+      [2,"This newspaper is the most trustworthy news source in the city. After all, its editorials state that it has never knowingly published a false story, and a newspaper this trustworthy would not lie about that.",FL,
+        "assumes the very thing it is trying to prove","attacks the character of a rival newspaper","generalizes from an unrepresentative sample","confuses correlation with causation","presents only two options when others exist",
+        "It trusts the editorials because the paper is trustworthy, which is the conclusion it set out to prove. That's circular reasoning."],
+      [3,"Every successful startup in our study had a founder with prior industry experience. So if you have prior industry experience, your startup will probably succeed.","The argument is most vulnerable to criticism on the grounds that it",
+        "fails to consider how many failed startups also had founders with industry experience","assumes industry experience is the only thing investors care about","relies on a study that was done too long ago","attacks founders who lack industry experience","uses the word 'successful' in two different senses",
+        "Knowing that every winner had experience tells you little unless you also know about the losers. If most failed startups had experienced founders too, experience doesn't predict success."],
+      [3,"Either we build a new stadium downtown, or our team will move to another city. No one wants to lose the team, so the city must build the new stadium.",FL,
+        "ignores other ways to keep the team, such as renovating the current stadium","assumes a new stadium would be profitable","draws a conclusion about all teams from a single team","assumes that whatever most people want is right","confuses a cause with an effect",
+        "It offers only two options. A renovation or a different deal might keep the team without a new stadium. That's a false choice."],
+      [3,"The theory of evolution is just a theory. And a theory is merely a guess that hasn't been proven. So scientists shouldn't treat evolution as established.",FL,
+        "uses the word 'theory' in two different senses","assumes scientists disagree about evolution","draws a general conclusion from a single example","relies on the opinions of people who aren't experts","confuses the cause of something with its effect",
+        "In science, a 'theory' is a well-tested explanation, not a guess. The argument slides from the everyday meaning to the scientific one. That's equivocation."],
+      [3,"Mayor: Opponents of the new zoning plan claim it will raise rents. But they made the same prediction about the last two zoning changes, and rents fell both times. So we have good reason to doubt their prediction now.","The mayor's argument proceeds by",
+        "questioning a prediction by pointing out that similar predictions by the same people turned out wrong","showing that the opponents' prediction rests on false data","arguing that the opponents would gain if the plan failed","offering evidence that the new plan will lower rents","showing that the new plan is identical to the last two changes",
+        "The mayor uses the opponents' track record to cast doubt on their prediction. She never claims the plan will lower rents or that it matches the earlier changes exactly."],
+      [4,"Critic: The new film has been praised for its realism. But realism in a film matters only if it serves the story, and in this film it doesn't. The long, realistic scenes of daily chores add nothing to the plot. So the praise for the film's realism is misplaced.","The claim that the scenes of daily chores add nothing to the plot plays which one of the following roles in the critic's argument?",
+        "It supports the claim that the film's realism doesn't serve the story.","It is the argument's main conclusion.","It is a view the critic sets out to refute.","It is the general principle the argument relies on.","It is evidence that the film was praised for its realism.",
+        "The main conclusion is that the praise is misplaced. The chores claim backs up a step on the way there: the realism doesn't serve the story. The principle is the 'matters only if it serves the story' sentence."],
+      [4,"All of the best chefs in the city trained in France. Mina trained in France. So Mina must be one of the best chefs in the city.","Which one of the following arguments contains flawed reasoning most similar to the reasoning above?",
+        "All championship teams in the league have a strong defense. The Hawks have a strong defense. So the Hawks must be a championship team.","All of the best chefs in the city trained in France. Mina did not. So Mina is not one of the best chefs in the city.","Most championship teams have a strong defense. The Hawks won the championship. So the Hawks probably have a strong defense.","Every member of the book club has read the novel. Ari has not read it. So Ari is not a member.","Some excellent pianists started lessons as children. Leo started lessons as a child. So Leo might become an excellent pianist.",
+        "The original reverses 'best chef → trained in France' into 'trained in France → best chef.' The Hawks argument makes the same reversal. The 'did not' and 'has not' arguments are valid contrapositives."],
+      [4,"Health official: After two years of study, researchers have found no evidence that the new pesticide harms bees. So the pesticide does not harm bees, and farmers can use it freely.",FL,
+        "treats a lack of evidence that something is true as proof that it is false","relies on research by scientists who may be biased","assumes that whatever harms bees also harms other insects","ignores whether farmers want to use the pesticide","draws a conclusion about all pesticides from one pesticide",
+        "Finding no evidence of harm isn't the same as showing there is no harm, especially if the effects take longer to appear."],
+      [5,"Last year, 60 percent of the bike thefts in Easton happened at bike racks without cameras. So bikes are less likely to be stolen at racks with cameras.",FL,
+        "doesn't consider what share of Easton's bike racks have cameras","assumes cameras prevent all thefts","relies on data that is only a year old","overlooks that some stolen bikes were later recovered","assumes most thieves know which racks have cameras",
+        "You need the base rate. If only 10 percent of racks have cameras but 40 percent of thefts happen there, the camera racks are actually riskier."],
+      [5,"Most of the lawyers at the Bell firm went to Carver Law School, and most Carver graduates speak Spanish. So most of the lawyers at the Bell firm speak Spanish.","Which one of the following arguments is most similar in its flawed reasoning to the argument above?",
+        "Most of the dogs at the shelter are terriers, and most terriers are good with children. So most of the dogs at the shelter are good with children.","All of the dogs at the shelter are terriers, and all terriers are good with children. So all of the dogs at the shelter are good with children.","Most of the shelter's dogs are terriers, and most of the shelter's dogs are good with children. So some terriers at the shelter are good with children.","Some of the shelter's dogs are terriers, and no terriers are aggressive. So some dogs at the shelter are not aggressive.","Most terriers are good with children. Rex is good with children. So Rex is probably a terrier.",
+        "'Most A are B' plus 'most B are C' doesn't give you 'most A are C.' The shelter's terriers could be the few that aren't good with kids. The other choices are valid or make a different mistake."],
+      [5,"Some philosophers claim that animals cannot feel pain because they cannot report it. But human infants cannot report pain either, and no one doubts that infants feel it. So the ability to report pain is not required for feeling pain.","The argument proceeds by",
+        "offering a counterexample to show that a supposed requirement isn't actually required","showing that the philosophers' claim leads to a contradiction","arguing that animals and infants feel pain in exactly the same way","questioning the philosophers' motives","using an analogy to prove that animals definitely feel pain",
+        "Infants are the counterexample: they feel pain without reporting it, so reporting can't be required. The argument stops there. It never concludes that animals definitely feel pain."]
+    ],
+    infer:[
+      [1,"Every Larkin Design employee who works on the branding team has completed the company's design course. Imani works on Larkin's branding team.",MBT,
+        "Imani has completed Larkin's design course.","Every employee who completed the course works on the branding team.","Imani is the most experienced member of the branding team.","Most Larkin employees have completed the course.","Imani completed the course before joining the branding team.",
+        "Branding team → completed the course. Imani is on the team, so she completed it. Nothing says when she took it."],
+      [1,"Many people assume that reading on screens hurts comprehension. But the research is mixed. Some studies find readers understand less on screens, while others find no difference when people are given enough time. So it is too early to conclude that screens harm reading comprehension.",MC,
+        "It is too early to say that reading on screens harms comprehension.","Reading on screens does not harm comprehension.","Some studies find readers understand less on screens.","People should be given more time when reading on screens.","Most people wrongly believe screens hurt comprehension.",
+        "The last sentence is the conclusion, and it's cautious: 'too early to conclude.' Saying screens don't harm comprehension goes further than the argument does."],
+      [1,"Only members can reserve the club's tennis courts. Ken reserved a court for Saturday morning.",MBT,
+        "Ken is a member of the club.","All members reserve courts on Saturdays.","Ken plays tennis every Saturday.","Non-members cannot use the courts at all.","Ken reserved the court for more than an hour.",
+        "'Only members can reserve' means reserving requires membership. Ken reserved, so he's a member. Using a court isn't the same as reserving one."],
+      [2,"In a study, people who were told a wine was expensive rated it as tasting better than people who were told the same wine was cheap. Brain scans showed more activity in pleasure-related areas among those told the wine was expensive.",MSS,
+        "What people believe about a product can affect how much they enjoy it.","Expensive wines are generally better than cheap ones.","People cannot tell expensive and cheap wines apart.","Wineries should raise prices to increase sales.","Brain scans are the most reliable way to measure enjoyment.",
+        "Same wine, different beliefs, different enjoyment, even in the brain scans. That supports the modest claim. 'Cannot tell them apart' goes too far."],
+      [2,"Ana: Our town should ban leaf blowers. They're loud, and their gas engines pollute the air.\nBen: The noise is annoying, but a ban goes too far. Electric leaf blowers are much quieter and don't burn gas, so we should just require those.","Ana and Ben disagree over whether",
+        "the town should ban leaf blowers","leaf blowers are loud","gas leaf blowers pollute the air","electric leaf blowers are quieter than gas ones","the town should regulate leaf blowers at all",
+        "Ben agrees about the noise and wants electric models instead of a ban. Both want some rule, so the one thing they clearly split on is the ban itself."],
+      [2,"Birds of a particular crow species that live near cities have larger brains, relative to body size, than members of the same species that live in remote forests. The city birds also solve puzzle-box tasks faster in lab tests.",MSS,
+        "Within this species, relative brain size may be linked to problem-solving ability.","Living near cities causes birds to develop larger brains.","Forest-dwelling birds of this species cannot solve puzzle boxes.","Birds of every species that live near cities are better problem solvers.","City birds of this species live longer than forest birds.",
+        "Bigger brains and faster puzzle-solving show up together, so a link is supported. The facts don't show that cities cause the bigger brains, or that this holds for other species."],
+      [3,"Most of the students in the photography class own a professional camera. Every student in the photography class is also enrolled in the art history seminar.",MBT,
+        "Some students in the art history seminar own a professional camera.","Most students in the art history seminar own a professional camera.","Every student who owns a professional camera is in the photography class.","Some photography students aren't in the art history seminar.","Most art history students are in the photography class.",
+        "The photography students who own cameras are all in the seminar, so at least some seminar students own one. You can't say 'most,' because the seminar might be much bigger than the class."],
+      [3,"If the museum receives the grant, it will extend its hours. If it extends its hours, it will need to hire more guards. The museum will not hire more guards.",MBT,
+        "The museum will not receive the grant.","The museum will extend its hours without hiring more guards.","The museum did not apply for the grant.","If the museum hires more guards, it will extend its hours.","The museum will receive the grant but not extend its hours.",
+        "Grant → longer hours → more guards. No more guards means no longer hours, which means no grant. That's the contrapositive run back through the chain."],
+      [3,"When the Valley Library began lending free museum passes, the number of new library card sign-ups doubled. The library made no other changes to its services that year.",MSS,
+        "The museum passes probably drew in some people who hadn't had library cards.","Most people who borrowed passes had never visited a museum.","Other libraries would see sign-ups double if they offered passes.","Museum passes are the library's most popular item.","People who signed up did so only to borrow museum passes.",
+        "Sign-ups doubled and nothing else changed, so the passes likely drew in new cardholders. 'Only to borrow passes' goes too far, and nothing here is about other libraries."],
+      [4,"Some economists say four-day workweeks lower productivity because employees have less time to get their work done. But companies that have tried four-day weeks often report that employees get as much done, since they waste less time and take fewer sick days. Still, these reports come mostly from office jobs, so they may not apply to jobs like manufacturing, where output depends on hours worked.",MC,
+        "Reports that four-day weeks don't lower productivity may not apply to jobs where output depends on hours worked.","Four-day workweeks lower productivity in manufacturing jobs.","Employees on four-day weeks waste less time and take fewer sick days.","Economists are wrong to say four-day weeks lower productivity.","Most companies that have tried four-day weeks are office businesses.",
+        "The passage ends with its real point: the good results may not transfer to hour-dependent jobs. It doesn't claim manufacturing would lose productivity, only that the evidence may not apply there."],
+      [4,"Last year, the percentage of Ridgeway's residents who commute by bike rose from 4 percent to 6 percent. Over the same period, Ridgeway's population fell.",MBT,
+        "The percentage of residents who do not commute by bike fell.","The number of residents who commute by bike rose.","The number of residents who commute by car fell.","Some residents who used to drive began biking to work.","Ridgeway expanded its bike lanes last year.",
+        "Percentages add up to 100. If biking went from 4 to 6 percent, everyone else went from 96 to 94 percent. You can't tell whether the number of bikers rose, because the population shrank."],
+      [4,"Lena: The documentary misled viewers. It showed only the farmers who supported the dam and left out those who opposed it.\nOmar: A documentary doesn't have to present every side. This one never claimed to be balanced; it set out to tell the story of the farmers who wanted the dam.","The dialogue most strongly supports the claim that Lena and Omar disagree over whether",
+        "the documentary misled its viewers","the documentary showed only farmers who supported the dam","documentaries should always present every side","the dam was good for the region's farmers","the documentary claimed to be balanced",
+        "Omar accepts that it focused on supporters but denies that this made it misleading. Lena never says every documentary must show every side, so that choice puts words in her mouth."],
+      [5,"The council will approve the park budget unless the mayor vetoes it. The mayor will veto the budget only if the auditor finds an error in it. The auditor found no errors in the budget.",MBT,
+        "The council will approve the park budget.","The mayor supports the park budget.","If the auditor had found an error, the mayor would have vetoed the budget.","The council has never rejected a budget the auditor approved.","The mayor will veto the budget.",
+        "'Veto only if error' means veto → error. No error, so no veto. 'Approve unless veto' means no veto → approve. An error wouldn't have guaranteed a veto; it's only required for one."],
+      [5,"In a survey of a city's restaurants, every restaurant that received a top hygiene rating also kept detailed cleaning logs. Several restaurants that kept detailed logs did not receive a top rating. Every restaurant in the survey that had been open more than ten years received a top rating.",MBT,
+        "Every surveyed restaurant open more than ten years kept detailed cleaning logs.","Every restaurant that kept detailed logs had been open more than ten years.","Some restaurants open more than ten years didn't keep detailed logs.","Most restaurants that kept detailed logs received a top rating.","Some top-rated restaurants had been open fewer than ten years.",
+        "Chain it: open more than ten years → top rating → cleaning logs. The other choices reverse an arrow, contradict the facts, or claim something the facts allow but don't require."],
+      [5,"Some argue that because people can be coached to do better on standardized tests, the tests measure test-taking skill rather than ability. But nearly every skill improves with coaching, including writing and playing the violin, and no one concludes that a writing contest measures only contest-taking skill. So coaching's effect on test scores does not, by itself, show that the tests fail to measure ability.",MC,
+        "That coaching raises test scores does not, on its own, show that the tests don't measure ability.","Standardized tests measure ability rather than test-taking skill.","Nearly every skill improves with coaching.","Writing contests measure more than contest-taking skill.","Test coaching should be available to everyone.",
+        "The argument is narrow: coachability alone doesn't prove the tests miss ability. It never claims the tests do measure ability, so that choice is too strong."]
+    ],
+    rc:[
+      [1,"@rc1","Which one of the following most accurately expresses the main point of the passage?",
+        "Concerns about restorative justice show that its results must be measured carefully, not that the approach fails.","Restorative justice should replace traditional criminal courts.","Studies prove that restorative justice lowers reoffending rates.","Victims in restorative justice programs are usually pressured into forgiving offenders.","Traditional courts give victims too small a role in criminal cases.",
+        "The last paragraph gives the author's view: the critics show success must be measured carefully, not that the approach fails. The passage never calls for replacing courts."],
+      [2,"@rc1","According to the passage, critics suggest that lower reoffending rates among participants might be explained by the fact that",
+        "the programs usually accept only offenders who admit guilt and volunteer","victims who take part feel less fear and anger","facilitators are not properly trained","offenders often pay for the damage they caused","courts frame cases as contests between the state and the accused",
+        "Second paragraph: participants are volunteers who admit guilt, so they might have reoffended less anyway."],
+      [3,"@rc1","The author's attitude toward restorative justice is best described as",
+        "cautiously favorable","openly hostile","completely neutral","enthusiastic and uncritical","deeply skeptical",
+        "The author defends the approach ('neither concern is fatal') but agrees that its success must be measured carefully. That's favorable, with reservations."],
+      [4,"@rc1","The author mentions randomly offering participation to similar offenders primarily in order to",
+        "show how researchers could answer the critics' concern about who takes part","argue that all offenders should be required to participate","explain why victims report less fear and anger","suggest that existing studies of restorative justice are worthless","show how facilitators can keep victims from feeling pressured",
+        "Random offers compare similar offenders, which answers the worry that participants were self-selected. The facilitators answer the other concern, about pressure on victims."],
+      [5,"@rc1","The passage most strongly suggests that the author would agree with which one of the following?",
+        "A study that randomly offered participation to similar offenders would be stronger evidence than the studies the critics question.","Victims should be required to meet with offenders.","Restorative justice suits only minor crimes.","Reoffending rates are the only reliable measure of a program's success.","Critics of restorative justice care mainly about protecting offenders.",
+        "The author proposes exactly this kind of study to fix the self-selection problem, so they would see it as better evidence."],
+      [1,"@rc2","Which one of the following most accurately expresses the main point of the passage?",
+        "Grasslands depend on fire, but burns on fixed schedules may not fully reproduce the effects of natural fires.","Controlled burns harm grasslands more than wildfires do.","Grassland birds are disappearing mainly because of groundwater loss.","Land managers should stop putting out wildfires entirely.","Tree seedlings survive fire better than grasses do.",
+        "The passage first explains why grasslands need fire, then adds the twist about fixed schedules. The main point combines both."],
+      [2,"@rc2","According to the passage, grasses recover quickly after a fire because",
+        "most of their living tissue is stored underground","their seeds need heat to sprout","they grow fastest in spring","they draw down groundwater that trees would use","their leaves provide little fuel for fire",
+        "First paragraph: grasses keep most of their living tissue underground, where the fire doesn't reach it."],
+      [3,"@rc2","The passage suggests that if fire were kept out of a grassland for many years, which one of the following would most likely happen?",
+        "Some birds that nest in open country would become less common there.","Grasses would store more of their tissue above ground.","Streams in the area would carry more water.","Controlled burns would become unnecessary.","Tree seedlings would become more vulnerable to fire.",
+        "Without fire, shrubs move in, and birds that nest only in open country disappear once shrubs take hold. Streams would likely get less water, not more."],
+      [4,"@rc2","The author's discussion of when managers usually burn serves mainly to",
+        "explain one way controlled burns differ from natural fires","argue that spring burns are unsafe","show that managers ignore ecologists' advice","prove that controlled burns reduce the number of plant species","describe how natural fires were started",
+        "The fixed spring schedule is the author's example of how controlled burns aren't a true return to natural conditions. 'Prove' is too strong: the ecologists only suspect an effect."],
+      [5,"@rc2","Which one of the following, if true, would most support the concern of the ecologists mentioned in the last paragraph?",
+        "Grasslands burned at varied times of year contain more plant species than similar grasslands burned every spring.","Spring burns kill more tree seedlings than fall burns do.","Most natural grassland fires were started by lightning.","Some grassland birds nest in shrubs as well as in open country.","Controlled burns cost less when done on a fixed schedule.",
+        "The ecologists suspect fixed schedules favor fewer plant species. More species where the timing varies is direct support for that worry."],
+      [1,"@rc3","Which one of the following most accurately expresses the main point of the passage?",
+        "Publishing in installments helped make Victorian novels what they are and did not make them lesser art.","Victorian authors cared more about sales than about art.","Serialized novels are less unified than novels published as complete books.","Plays respond to audiences more than novels do.","Most Victorian novels were finished before their first installments appeared.",
+        "The author argues that serialization was one of the conditions that made these novels what they are, and rejects the claim that it made them lesser art. 'Less unified' is the critics' view."],
+      [2,"@rc3","The passage indicates that earlier literary critics viewed serialization as",
+        "a business matter with little effect on the novels themselves","the main reason Victorian novels were popular","a format that improved the novels' plots","the cause of the novels' strong chapter endings","evidence that authors planned their novels carefully",
+        "The passage says critics long treated it as 'a commercial detail with little bearing on the novels themselves.' The right answer says the same thing in other words."],
+      [3,"@rc3","The author mentions plays primarily in order to",
+        "show that being revised in response to audiences doesn't make a work lesser art","argue that Victorian novels began as plays","suggest that theater is more important than the novel","explain why Victorian novels had strong chapter endings","show that critics of serialization also criticized theater",
+        "Plays are a counterexample to the critics' assumption: they get reworked for audiences, and no one calls them lesser art for it."],
+      [4,"@rc3","According to the author, the critics' conclusion about serialized novels rests on the assumption that",
+        "a novel's value depends on its having been planned in advance","readers' tastes are usually poor","serialized novels sold better than complete books","plays are not really works of art","chapter endings matter more than plot",
+        "The second paragraph names this assumption directly, then challenges it with the example of plays."],
+      [5,"@rc3","The author would most likely say that a critic who praises a Victorian novel's chapter endings while faulting its serialized form is",
+        "praising an effect of the very format being faulted","applying a standard meant only for theater","confusing the author's intentions with readers' reactions","ignoring the commercial pressures on Victorian authors","relying too heavily on the views of Victorian readers",
+        "The author says the installment format helps explain those strong chapter endings. So praising the endings while faulting serialization praises something serialization produced."]
+    ],
+    fun:[
+      [1,"","In 'Legally Blonde,' which law school does Elle Woods attend?","Harvard Law School","Yale Law School","Stanford Law School","Columbia Law School",
+        "Elle follows her ex to Harvard Law and ends up outshining him."],
+      [1,"","In 'My Cousin Vinny,' what is Vinny Gambini's job?","Lawyer","Car mechanic","Police detective","Judge",
+        "Vinny is a brand-new lawyer from Brooklyn defending his cousin in Alabama. Mona Lisa Vito's car knowledge saves the case."],
+      [1,"","Which TV show follows Harvey Specter and Mike Ross, who practices law without a law degree?","Suits","The Good Wife","Boston Legal","Better Call Saul",
+        "Mike Ross never went to law school. Keeping that secret drives much of the show."],
+      [1,"","How many jurors deliberate in the film '12 Angry Men'?","12","6","9","15",
+        "It's in the title. One juror's doubt slowly turns the other eleven."],
+      [1,"","How many justices sit on the U.S. Supreme Court?","9","7","11","12",
+        "Nine: one chief justice and eight associate justices. Congress has kept it at nine since 1869."],
+      [2,"","What does 'pro bono' legal work mean?","Work done for free for the public good","A plea of guilty","A case that has been dismissed","Work for the prosecution",
+        "It's short for the Latin 'pro bono publico,' meaning 'for the public good.'"],
+      [2,"","In 'How to Get Away with Murder,' what kind of law does Annalise Keating teach?","Criminal law","Constitutional law","Tax law","Contract law",
+        "Her class is Criminal Law 100, which her students nickname 'How to Get Away with Murder.'"],
+      [2,"","Which 1954 Supreme Court case ruled that segregated public schools are unconstitutional?","Brown v. Board of Education","Plessy v. Ferguson","Roe v. Wade","Marbury v. Madison",
+        "Brown rejected 'separate but equal' in public schools, the rule from Plessy v. Ferguson (1896)."],
+      [2,"","In 'Better Call Saul,' what is Saul Goodman's real name?","Jimmy McGill","Chuck McGill","Howard Hamlin","Kim Wexler",
+        "Jimmy McGill takes the name Saul Goodman, a play on 'S'all good, man.' Chuck is his older brother."],
+      [2,"","Who was the first woman to serve on the U.S. Supreme Court?","Sandra Day O'Connor","Ruth Bader Ginsburg","Sonia Sotomayor","Elena Kagan",
+        "O'Connor joined the Court in 1981. Ginsburg followed in 1993."],
+      [3,"","What does 'habeas corpus' literally mean?","You should have the body","Let the buyer beware","The thing speaks for itself","Let the decision stand",
+        "A writ of habeas corpus makes the government bring a detained person before a court and justify holding them."],
+      [3,"","Which Supreme Court case led to the 'right to remain silent' warnings given at arrests?","Miranda v. Arizona","Gideon v. Wainwright","Mapp v. Ohio","Terry v. Ohio",
+        "Miranda v. Arizona (1966) requires police to warn suspects of their rights before questioning them in custody."],
+      [3,"","In 'To Kill a Mockingbird,' whom does Atticus Finch defend in court?","Tom Robinson","Boo Radley","Bob Ewell","Walter Cunningham",
+        "Atticus defends Tom Robinson, a Black man falsely accused by Bob Ewell's daughter."],
+      [3,"","On 'Law & Order,' the opening says the people are represented by the police who investigate crime and which other group?","The district attorneys who prosecute the offenders","The defense attorneys who protect the accused","The judges who decide the cases","The juries who deliver the verdicts",
+        "'These are their stories.' The show splits each episode between the police half and the prosecutors' half."],
+      [3,"","In legal Latin, what is 'mens rea'?","A guilty mind, or criminal intent","The guilty act itself","A friend of the court","A ruling from the bench",
+        "Most crimes need both mens rea (the guilty mind) and actus reus (the guilty act)."],
+      [4,"","What is the LSAT's score range?","120 to 180","200 to 800","1 to 36","130 to 170",
+        "LSAT scores run from 120 to 180. The others are SAT sections (200–800), the ACT (1–36) and GRE sections (130–170)."],
+      [4,"","Which 1803 case established that federal courts can strike down laws as unconstitutional?","Marbury v. Madison","McCulloch v. Maryland","Gibbons v. Ogden","Dred Scott v. Sandford",
+        "Marbury v. Madison set up judicial review, the courts' power to overturn unconstitutional laws."],
+      [4,"","What standard of proof is required to convict someone in a U.S. criminal trial?","Beyond a reasonable doubt","A preponderance of the evidence","Clear and convincing evidence","Probable cause",
+        "'Preponderance of the evidence' is the usual standard in civil cases, and 'probable cause' is what's needed for arrests and searches."],
+      [4,"","What is 'voir dire'?","Questioning potential jurors to choose a jury","A lawyer's closing argument","An appeal to a higher court","A plea bargain",
+        "During voir dire, lawyers and the judge question potential jurors to spot bias before the trial starts."],
+      [5,"","Before joining the Supreme Court, Thurgood Marshall led the legal team of which organization?","The NAACP Legal Defense and Educational Fund","The American Civil Liberties Union","The National Urban League","The Southern Christian Leadership Conference",
+        "Marshall founded and ran the NAACP Legal Defense Fund, and he argued Brown v. Board of Education for it."],
+      [5,"","Which 1963 Supreme Court case guaranteed a lawyer to criminal defendants who can't afford one?","Gideon v. Wainwright","Mapp v. Ohio","Terry v. Ohio","Katz v. United States",
+        "Clarence Gideon wrote his petition to the Court by hand from prison, and he won."],
+      [5,"","What does 'res ipsa loquitur' mean?","The thing speaks for itself","Let the decision stand","A guilty mind","A friend of the court",
+        "It lets a court infer negligence when an accident wouldn't normally happen without it, like a barrel falling out of a warehouse window."],
+      [5,"","Before becoming a justice, Ruth Bader Ginsburg co-founded which ACLU project?","The Women's Rights Project","The Voting Rights Project","The National Prison Project","The Immigrants' Rights Project",
+        "She co-founded the ACLU Women's Rights Project in 1972 and argued six sex-discrimination cases before the Supreme Court."],
+      [5,"","Which lawyer defended John Scopes in the 1925 'Monkey Trial' over teaching evolution?","Clarence Darrow","William Jennings Bryan","Thurgood Marshall","Louis Brandeis",
+        "Darrow defended Scopes, and William Jennings Bryan helped prosecute him."]
+    ]
+  };
+
+  const shuffle = a => { const b = a.slice(); for(let i = b.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const mod = (n, m) => ((n % m) + m) % m;
+  const money = n => (n < 0 ? '−$' : '$') + Math.abs(n).toLocaleString();
+
+  // Questions you've already seen are remembered on this device (across games)
+  // and skipped until every question that fits has been used.
+  const ALL_CATS = Object.keys(Q);
+  const hash = s => { let h = 5381; for(let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
+  let seen = store.get('kosat.seen', {});
+  if(!seen || typeof seen !== 'object') seen = {};
+  const qKey = (cat, qi) => hash(Q[cat][qi][1] + '|' + Q[cat][qi][2]);
+  const isSeen = (cat, qi) => (seen[cat] || []).includes(qKey(cat, qi));
+  function markSeen(cat, qi){
+    const list = seen[cat] || (seen[cat] = []), h = qKey(cat, qi);
+    if(!list.includes(h)){ list.push(h); store.set('kosat.seen', seen); }
+  }
+  function freshPick(cat, filter){
+    const pool = Q[cat].map((q, i) => i).filter(filter);
+    let fresh = pool.filter(i => !isSeen(cat, i));
+    if(!fresh.length){
+      const hs = new Set(pool.map(i => qKey(cat, i)));
+      seen[cat] = (seen[cat] || []).filter(h => !hs.has(h));
+      store.set('kosat.seen', seen);
+      fresh = pool;
+    }
+    return pick(fresh);
+  }
+  const drawQuestion = (cat, lo, hi) => freshPick(cat, i => Q[cat][i][0] >= lo && Q[cat][i][0] <= hi);
+  // Spin mode difficulty by level: L1 tiers 1-3, L2 2-4, L3 3-5, L4+ 4-5
+  const tierRange = lvl => [Math.min(4, lvl), Math.min(5, lvl + 2)];
+
+  // ---------- State ----------
+  const MAX_LIVES = 3, PER_LEVEL = 5;
+  const S = { mode:'spin', started:false, phase:'start', lives:MAX_LIVES, level:1, score:0, correct:0, wrong:0, levelCorrect:0,
+              rot:0, leveled:false, heartBack:false, current:null, board:null, pendingWager:null,
+              cats: CAT_ORDER.slice() };
+  const colorOf = id => id === 'crown' ? CROWN_COLOR : SEAT_COLORS[Math.max(0, S.cats.indexOf(id))];
+  const slices = () => { const c = S.cats; return [c[0], c[1], c[2], c[3], c[4], 'crown', c[5]]; };
+  const dealCats = () => { S.cats = CAT_ORDER.slice(); };
+  const best = { spin: store.get('kosat.best', 0), board: store.get('kosat.bestBoard', 0) };
+  let muted = store.get('kosat.muted', false);
+  // Spin mode: the clock gets 10% shorter each level, down to 60% of the base time
+  const timeFor = (cat, lvl) => Math.round(CAT_TIME[cat] * Math.max(.6, 1 - .1 * (lvl - 1)));
+  const boardTime = cat => CAT_TIME[cat];
+  const finalTime = cat => Math.round(CAT_TIME[cat] * 1.3 / 5) * 5;
+  const LETTERS = 'ABCDE';
+
+  // ---------- Sound ----------
+  let actx = null;
+  function audio(){
+    if(muted) return null;
+    try{
+      if(!actx){ const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return null; actx = new AC(); }
+      if(actx.state === 'suspended') actx.resume().catch(() => {});
+      return actx;
+    }catch(e){ return null; }
+  }
+  function tone(freq, dur, type = 'sine', vol = .14, when = 0){
+    const a = audio(); if(!a) return;
+    try{
+      const t = a.currentTime + when, o = a.createOscillator(), g = a.createGain();
+      o.type = type; o.frequency.setValueAtTime(freq, t);
+      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .012); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+      o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + dur + .03);
+    }catch(e){}
+  }
+  const sfx = {
+    tick(){ tone(1500 + Math.random() * 200, .03, 'square', .04); },
+    land(){ tone(660, .12, 'triangle', .16); tone(990, .2, 'triangle', .14, .1); },
+    right(){ tone(784, .12, 'triangle', .18); tone(1175, .25, 'triangle', .16, .1); },
+    wrong(){ tone(180, .32, 'sawtooth', .09); tone(130, .4, 'sawtooth', .08, .12); },
+    hurry(){ tone(900, .05, 'square', .05); },
+    level(){ [523, 659, 784, 1047].forEach((f, i) => tone(f, .18, 'triangle', .15, i * .09)); },
+    dd(){ [392, 523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .14, 'square', .07, i * .06)); },
+    over(){ [392, 330, 262].forEach((f, i) => tone(f, .3, 'triangle', .14, i * .16)); }
+  };
+
+  // ---------- Elements ----------
+  const el = {};
+  ['hearts','midLbl','midVal','score','muteBtn','pips','wheelView','boardView','questionView','wheelWrap','wheel','bulbs','pointer','hubBtn','spinBtn','hint',
+   'board','boardNote','finishBtn','card','catChip','timerNum','timerFill','stimLabel','stimText','qText','answers','why','feedback','nextBtn',
+   'startOverlay','modeSpin','modeBoard','bestSpinLine','bestBoardLine','pickOverlay','pickGrid',
+   'wagerOverlay','wagerKicker','wagerTitle','wagerText','wagerAmt','wagerRange','wagerMin','wagerMax','wagerBtn',
+   'levelOverlay','levelTitle','levelText','levelBtn',
+   'overOverlay','overTitle','overNote','newBest','stat1Lbl','stat1','stat2Lbl','stat2','stat3Lbl','stat3','overBest','againBtn','switchBtn'
+  ].forEach(id => { el[id] = $(id); });
+
+  // ---------- HUD ----------
+  const HEART = '<svg class="heart" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21.2l-1.4-1.3C5.4 15.2 2 12.1 2 8.4 2 5.4 4.4 3 7.4 3c1.7 0 3.4.8 4.6 2.1C13.2 3.8 14.9 3 16.6 3 19.6 3 22 5.4 22 8.4c0 3.7-3.4 6.8-8.6 11.5L12 21.2z"/></svg>';
+  const cluesLeft = () => S.board ? S.board.cols.reduce((n, c) => n + c.tiles.filter(t => !t.used).length, 0) : 0;
+  function renderHud(hitIndex = -1){
+    const board = S.mode === 'board';
+    el.hearts.hidden = board;
+    if(!board){
+      el.hearts.innerHTML = Array.from({length:MAX_LIVES}, (_, i) => HEART.replace('class="heart"', `class="heart${i >= S.lives ? ' lost' : ''}${i === hitIndex ? ' hit' : ''}"`)).join('');
+      el.hearts.setAttribute('aria-label', `${S.lives} ${S.lives === 1 ? 'life' : 'lives'} left`);
+      el.midLbl.textContent = 'Level'; el.midVal.textContent = S.level;
+      el.score.textContent = S.score.toLocaleString();
+      el.pips.innerHTML = Array.from({length:PER_LEVEL}, (_, i) => `<span class="pip${i < S.levelCorrect ? ' on' : ''}"></span>`).join('');
+      el.pips.setAttribute('aria-label', `${S.levelCorrect} of ${PER_LEVEL} correct this level`);
+    } else {
+      el.midLbl.textContent = 'Clues left'; el.midVal.textContent = cluesLeft();
+      el.score.textContent = money(S.score);
+    }
+    el.score.classList.toggle('neg', S.score < 0);
+  }
+  function popScore(){ el.score.classList.remove('pop'); void el.score.offsetWidth; el.score.classList.add('pop'); }
+  function renderMute(){
+    el.muteBtn.innerHTML = muted
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor"/><path d="m16 9 5 6M21 9l-5 6"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
+    el.muteBtn.setAttribute('aria-label', muted ? 'Turn sound on' : 'Turn sound off');
+  }
+  el.muteBtn.addEventListener('click', () => { muted = !muted; store.set('kosat.muted', muted); renderMute(); if(!muted) sfx.tick(); });
+  function renderBest(){
+    el.bestSpinLine.textContent = `Best: ${best.spin.toLocaleString()}`;
+    el.bestBoardLine.textContent = `Best: ${money(best.board)}`;
+  }
+
+  // ---------- Wheel drawing ----------
+  const SEG = 360 / 7;
+  const wctx = el.wheel.getContext('2d'), bctx = el.bulbs.getContext('2d');
+  const DISPLAY_FONT = "'DM Serif Display', Georgia, 'Times New Roman', serif";
+
+  function sizeCanvas(c){
+    const r = c.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 3);
+    const w = Math.max(1, Math.round(r.width * dpr));
+    if(c.width !== w){ c.width = w; c.height = w; return true; }
+    return false;
+  }
+  function crownPath(ctx, s){
+    ctx.beginPath();
+    ctx.moveTo(-s/2, s*.32); ctx.lineTo(-s/2, -s*.28); ctx.lineTo(-s/4, 0); ctx.lineTo(0, -s*.42);
+    ctx.lineTo(s/4, 0); ctx.lineTo(s/2, -s*.28); ctx.lineTo(s/2, s*.32); ctx.closePath();
+  }
+  function drawWheel(){
+    if(el.wheel.getBoundingClientRect().width < 20) return; // hidden
+    sizeCanvas(el.wheel);
+    const W = el.wheel.width, c = W / 2, r = c - W * .006, ctx = wctx;
+    const hubR = W * (0.125 / 0.85);
+    ctx.clearRect(0, 0, W, W);
+    const SLICES = slices();
+    SLICES.forEach((id, i) => {
+      const a0 = (-90 + i * SEG) * Math.PI / 180, a1 = (-90 + (i + 1) * SEG) * Math.PI / 180;
+      ctx.beginPath(); ctx.moveTo(c, c); ctx.arc(c, c, r, a0, a1); ctx.closePath();
+      ctx.fillStyle = colorOf(id); ctx.fill();
+    });
+    const g = ctx.createRadialGradient(c, c, hubR, c, c, r);
+    g.addColorStop(0, 'rgba(255,255,255,.18)'); g.addColorStop(.7, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(0,0,0,.22)');
+    ctx.beginPath(); ctx.arc(c, c, r, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill();
+    ctx.strokeStyle = 'rgba(244,239,226,.95)'; ctx.lineWidth = Math.max(2, W * .008);
+    SLICES.forEach((_, i) => {
+      const a = (-90 + i * SEG) * Math.PI / 180;
+      ctx.beginPath(); ctx.moveTo(c, c); ctx.lineTo(c + Math.cos(a) * r, c + Math.sin(a) * r); ctx.stroke();
+    });
+    ctx.beginPath(); ctx.arc(c, c, r - ctx.lineWidth / 2, 0, Math.PI * 2); ctx.stroke();
+    SLICES.forEach((id, i) => {
+      const mid = (-90 + (i + .5) * SEG) * Math.PI / 180;
+      const isCrown = id === 'crown';
+      const lines = CATS[id].wheel || [CATS[id].name.toUpperCase()];
+      const outer = isCrown ? r * .70 : r * .9;
+      const maxW = outer - hubR - r * .06;
+      let fs = W * .056;
+      ctx.save(); ctx.translate(c, c); ctx.rotate(mid);
+      ctx.font = `${fs}px ${DISPLAY_FONT}`;
+      const widest = () => Math.max(...lines.map(l => ctx.measureText(l).width));
+      while(widest() > maxW && fs > 6){ fs -= .5; ctx.font = `${fs}px ${DISPLAY_FONT}`; }
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+      ctx.lineWidth = Math.max(2, fs * .24); ctx.strokeStyle = '#16241d';
+      ctx.fillStyle = isCrown ? '#e2b857' : '#fbf8f0';
+      lines.forEach((l, k) => {
+        const y = (k - (lines.length - 1) / 2) * fs * 1.02 + fs * .06;
+        ctx.strokeText(l, outer, y); ctx.fillText(l, outer, y);
+      });
+      if(isCrown){
+        ctx.translate(r * .84, 0); ctx.rotate(Math.PI / 2);
+        crownPath(ctx, W * .075);
+        ctx.fillStyle = '#e2b857'; ctx.fill(); ctx.lineWidth = Math.max(2, W * .007); ctx.strokeStyle = '#16241d'; ctx.stroke();
+      }
+      ctx.restore();
+    });
+  }
+
+  let bulbMode = 'idle', lastBulbKey = '';
+  function drawBulbs(now){
+    if(el.wheelView.hidden) return;
+    const resized = sizeCanvas(el.bulbs);
+    const speed = bulbMode === 'fast' ? 70 : bulbMode === 'win' ? 170 : 520;
+    const step = reduced ? 0 : Math.floor(now / speed);
+    const key = `${bulbMode}|${step}|${el.bulbs.width}`;
+    if(key === lastBulbKey && !resized) return;
+    lastBulbKey = key;
+    const W = el.bulbs.width, c = W / 2, ctx = bctx, n = 28;
+    if(W < 20) return;
+    ctx.clearRect(0, 0, W, W);
+    ctx.beginPath(); ctx.arc(c, c, c - W * .006, 0, Math.PI * 2);
+    ctx.fillStyle = '#1b3328'; ctx.fill();
+    ctx.lineWidth = W * .012; ctx.strokeStyle = '#a8812c'; ctx.stroke();
+    ctx.beginPath(); ctx.arc(c, c, W * .43, 0, Math.PI * 2); ctx.lineWidth = W * .01; ctx.strokeStyle = '#0e1c16'; ctx.stroke();
+    const rr = W * .462, br = W * .0145;
+    for(let k = 0; k < n; k++){
+      let on;
+      if(bulbMode === 'win') on = step % 2 === 0 ? k % 2 === 0 : k % 2 === 1;
+      else on = mod(k - step, 3) === 0;
+      if(reduced && bulbMode !== 'win') on = k % 2 === 0;
+      const a = (k / n) * Math.PI * 2 - Math.PI / 2;
+      const x = c + Math.cos(a) * rr, y = c + Math.sin(a) * rr;
+      ctx.beginPath(); ctx.arc(x, y, br, 0, Math.PI * 2);
+      if(on){ ctx.shadowColor = 'rgba(246,231,189,.8)'; ctx.shadowBlur = br * 1.6; ctx.fillStyle = '#f3e3b5'; }
+      else { ctx.shadowBlur = 0; ctx.fillStyle = '#3b5548'; }
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+  }
+  function loop(now){ drawBulbs(now); requestAnimationFrame(loop); }
+
+  function setRot(deg){ S.rot = deg; el.wheel.style.transform = `rotate(${deg}deg)`; }
+  function nudgePointer(){ el.pointer.classList.remove('tick'); void el.pointer.getBoundingClientRect(); el.pointer.classList.add('tick'); }
+
+  // ---------- Shared flow ----------
+  function showView(name){
+    el.wheelView.hidden = name !== 'wheel';
+    el.boardView.hidden = name !== 'board';
+    el.questionView.hidden = name !== 'question';
+  }
+
+  // Timer
+  let timerRAF = 0, deadline = 0, duration = 0, lastSec = 0;
+  function startTimer(sec){
+    cancelAnimationFrame(timerRAF);
+    duration = sec * 1000; deadline = performance.now() + duration; lastSec = sec;
+    el.timerNum.textContent = sec; el.card.classList.remove('hurry');
+    el.timerFill.style.transform = 'scaleX(1)';
+    timerRAF = requestAnimationFrame(timerFrame);
+  }
+  function timerFrame(now){
+    const left = Math.max(0, deadline - now);
+    el.timerFill.style.transform = `scaleX(${left / duration})`;
+    const s = Math.ceil(left / 1000);
+    if(s !== lastSec){ lastSec = s; el.timerNum.textContent = s; if(s <= 5 && s > 0) sfx.hurry(); }
+    el.card.classList.toggle('hurry', s <= 5);
+    if(left <= 0){ answer(-1); return; }
+    timerRAF = requestAnimationFrame(timerFrame);
+  }
+  const stopTimer = () => cancelAnimationFrame(timerRAF);
+
+  // Show a question card. extra: { value, col, row, isFinal } for board mode
+  function showQuestion(cat, qi, seconds, chipText, extra = {}){
+    const q = Q[cat][qi];
+    const stim = q[1], stem = q[2], right = q[3], why = q[q.length - 1], wrong = q.slice(4, -1);
+    const opts = shuffle([right, ...wrong]);
+    S.current = Object.assign({ cat, qi, right, why, correctIndex: opts.indexOf(right) }, extra);
+    markSeen(cat, qi);
+    S.phase = 'question';
+    el.card.style.setProperty('--cat', colorOf(cat));
+    el.catChip.textContent = chipText;
+    const isPassage = stim[0] === '@';
+    el.stimLabel.hidden = !isPassage;
+    el.stimText.hidden = !stim;
+    el.stimText.className = 'stim' + (isPassage ? ' passage' : '');
+    el.stimText.textContent = isPassage ? PASSAGES[stim.slice(1)] : stim;
+    el.qText.textContent = stem;
+    el.qText.classList.toggle('stem', !!stim);
+    el.why.hidden = true; el.why.textContent = '';
+    el.answers.innerHTML = opts.map((o, i) => `<button class="ans" type="button" data-i="${i}"><span class="key">${LETTERS[i]}</span><span class="txt"></span></button>`).join('');
+    el.answers.querySelectorAll('.txt').forEach((n, i) => { n.textContent = opts[i]; });
+    el.feedback.textContent = ''; el.feedback.className = 'feedback';
+    el.nextBtn.hidden = true;
+    el.card.style.animation = 'none'; void el.card.offsetWidth; el.card.style.animation = '';
+    showView('question');
+    el.questionView.scrollTop = 0;
+    el.qText.focus({preventScroll:true});
+    startTimer(seconds);
+  }
+
+  el.answers.addEventListener('click', e => {
+    const b = e.target.closest('.ans'); if(!b || S.phase !== 'question') return;
+    answer(+b.dataset.i);
+  });
+
+  function answer(i){
+    if(S.phase !== 'question') return;
+    stopTimer();
+    S.phase = 'reveal';
+    const btns = [...el.answers.querySelectorAll('.ans')];
+    const cur = S.current, ci = cur.correctIndex, ok = i === ci;
+    btns.forEach((b, k) => {
+      b.disabled = true;
+      if(k === ci) b.classList.add('right');
+      else if(k === i) b.classList.add('wrong');
+      else b.classList.add('dim');
+    });
+    const missLine = () => {
+      el.feedback.querySelector('small').textContent = `The answer was ${LETTERS[ci]}.`;
+    };
+    el.why.innerHTML = `<b>${ok ? 'Why it’s right:' : `Why ${LETTERS[ci]} is right:`}</b> `;
+    el.why.appendChild(document.createTextNode(cur.why));
+    el.why.classList.toggle('miss', !ok);
+    el.why.hidden = false;
+
+    if(S.mode === 'spin'){
+      if(ok){
+        const frac = Math.max(0, deadline - performance.now()) / duration;
+        const pts = 100 * S.level + Math.round(frac * 10) * 10;
+        S.score += pts; S.correct++; S.levelCorrect++;
+        sfx.right();
+        el.feedback.className = 'feedback good';
+        el.feedback.textContent = `Correct! +${pts}`;
+        if(S.levelCorrect >= PER_LEVEL){
+          S.level++; S.levelCorrect = 0; S.leveled = true;
+          S.heartBack = S.lives < MAX_LIVES;
+          if(S.heartBack) S.lives++;
+        }
+        renderHud(); popScore();
+      } else {
+        S.lives--; S.wrong++;
+        sfx.wrong();
+        el.feedback.className = 'feedback bad';
+        el.feedback.innerHTML = `${i === -1 ? "Time's up!" : 'Not quite.'}<small></small>`;
+        missLine();
+        renderHud(S.lives);
+      }
+      el.nextBtn.textContent = S.lives <= 0 ? 'See results' : S.leveled ? 'Level up!' : 'Spin again';
+    } else {
+      const v = cur.value;
+      if(!cur.isFinal) S.board.cols[cur.col].tiles[cur.row].used = true;
+      if(ok){
+        S.score += v; S.correct++;
+        sfx.right();
+        el.feedback.className = 'feedback good';
+        el.feedback.textContent = `Correct! +${money(v)}`;
+      } else {
+        S.score -= v; S.wrong++;
+        sfx.wrong();
+        el.feedback.className = 'feedback bad';
+        el.feedback.innerHTML = `${i === -1 ? "Time's up!" : 'Not quite.'} −${money(v)}<small></small>`;
+        missLine();
+      }
+      renderHud(); popScore();
+      el.nextBtn.textContent = cur.isFinal ? 'See results' : cluesLeft() === 0 ? 'Final round' : 'Back to board';
+    }
+    el.nextBtn.hidden = false;
+    el.nextBtn.focus({preventScroll:true});
+    el.why.scrollIntoView({block:'start', behavior: reduced ? 'auto' : 'smooth'});
+  }
+
+  el.nextBtn.addEventListener('click', () => {
+    if(S.phase !== 'reveal') return;
+    if(S.mode === 'spin'){
+      if(S.lives <= 0) return gameOver();
+      if(S.leveled) return showLevelUp();
+      return toWheel();
+    }
+    if(S.current && S.current.isFinal) return gameOver();
+    if(cluesLeft() === 0) return startFinal();
+    toBoard();
+  });
+
+  // ---------- Spin mode ----------
+  function toWheel(){
+    S.phase = 'wheel';
+    el.wheel.setAttribute('aria-label', 'Category wheel: ' + slices().map(id => CATS[id].name).join(', '));
+    showView('wheel');
+    bulbMode = 'idle'; lastBulbKey = '';
+    el.spinBtn.disabled = false; el.hubBtn.disabled = false;
+    el.hint.textContent = 'Tap spin to get a question type'; el.hint.style.color = '';
+    renderHud();
+    requestAnimationFrame(drawWheel);
+  }
+
+  function spin(){
+    if(S.phase !== 'wheel') return;
+    audio();
+    S.phase = 'spinning';
+    el.spinBtn.disabled = true; el.hubBtn.disabled = true;
+    el.hint.textContent = 'Spinning…'; el.hint.style.color = '';
+    bulbMode = 'fast';
+    const n = 7;
+    const t = Math.floor(Math.random() * n);
+    const offset = SEG * (.18 + Math.random() * .64);
+    const target = 360 - (t * SEG + offset);
+    const start = S.rot, base = start - mod(start, 360);
+    let end = base + target + 360 * 5;
+    if(end - start < 360 * 4) end += 360;
+    const dur = reduced ? 1200 : 4300, t0 = performance.now();
+    let lastIdx = Math.floor(start / SEG);
+    function frame(now){
+      const p = Math.min(1, (now - t0) / dur);
+      const e = 1 - Math.pow(1 - p, 4);
+      setRot(start + (end - start) * e);
+      const idx = Math.floor(S.rot / SEG);
+      if(idx !== lastIdx){ lastIdx = idx; sfx.tick(); if(!reduced) nudgePointer(); }
+      if(p < 1) requestAnimationFrame(frame); else landed();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function landed(){
+    const i = Math.floor(mod(-S.rot, 360) / SEG) % 7;
+    const id = slices()[i];
+    bulbMode = 'win';
+    sfx.land();
+    el.hint.textContent = id === 'crown' ? 'Crown! You pick' : `${CATS[id].name}!`;
+    el.hint.style.color = id === 'crown' ? '#e2b857' : colorOf(id);
+    setTimeout(() => {
+      bulbMode = 'idle';
+      if(id === 'crown') openPick(); else askSpin(id);
+    }, 900);
+  }
+
+  function askSpin(cat){
+    const [lo, hi] = tierRange(S.level);
+    showQuestion(cat, drawQuestion(cat, lo, hi), timeFor(cat, S.level), CATS[cat].name);
+  }
+
+  function openPick(){
+    S.phase = 'pick';
+    el.pickGrid.innerHTML = S.cats.map(id => `<button class="pick-btn" type="button" data-cat="${id}" style="--c:${colorOf(id)}">${CATS[id].name}</button>`).join('');
+    el.pickOverlay.hidden = false;
+    el.pickGrid.querySelector('button').focus({preventScroll:true});
+  }
+  el.pickGrid.addEventListener('click', e => {
+    const b = e.target.closest('.pick-btn'); if(!b) return;
+    el.pickOverlay.hidden = true;
+    askSpin(b.dataset.cat);
+  });
+
+  function showLevelUp(){
+    S.leveled = false; S.phase = 'levelup';
+    sfx.level();
+    el.levelTitle.textContent = `Level ${S.level}`;
+    el.levelText.textContent = `Harder questions, ${timeFor('assume', S.level)} seconds per argument, and more points per right answer.` + (S.heartBack ? ' You also won back a heart.' : '');
+    el.levelOverlay.hidden = false;
+    el.levelBtn.focus({preventScroll:true});
+  }
+  el.levelBtn.addEventListener('click', () => { el.levelOverlay.hidden = true; toWheel(); });
+
+  // ---------- Board mode ----------
+  function buildBoard(){
+    const cols = S.cats.map(cat => ({
+      cat,
+      tiles: [1, 2, 3, 4, 5].map(tier => ({
+        qi: freshPick(cat, i => Q[cat][i][0] === tier),
+        value: tier * 200, used: false, dd: false
+      }))
+    }));
+    pick(cols).tiles[2 + Math.floor(Math.random() * 3)].dd = true;
+    const fcat = pick(S.cats);
+    const onBoard = new Set(cols.find(c => c.cat === fcat).tiles.map(t => t.qi));
+    const fqi = freshPick(fcat, i => Q[fcat][i][0] >= 4 && !onBoard.has(i));
+    S.board = { cols, final: { cat: fcat, qi: fqi } };
+  }
+
+  function renderBoard(){
+    const cols = S.board.cols;
+    let html = cols.map(c => `<div class="bhead" style="--c:${colorOf(c.cat)}">${CATS[c.cat].board || CATS[c.cat].name}</div>`).join('');
+    for(let row = 0; row < 5; row++){
+      cols.forEach((c, col) => {
+        const t = c.tiles[row];
+        html += t.used
+          ? `<button class="tile" type="button" disabled aria-label="${CATS[c.cat].name} ${money(t.value)}, done"></button>`
+          : `<button class="tile" type="button" data-col="${col}" data-row="${row}" aria-label="${CATS[c.cat].name} for ${money(t.value)}">${money(t.value)}</button>`;
+      });
+    }
+    el.board.innerHTML = html;
+    const left = cluesLeft();
+    el.boardNote.textContent = left === 30 ? 'Pick a question type and an amount' : `${left} clue${left === 1 ? '' : 's'} left`;
+    el.finishBtn.textContent = left === 0 ? 'Play the final round' : 'Skip to final';
+    el.finishBtn.className = left === 0 ? 'big-btn' : 'ghost-btn';
+  }
+
+  function toBoard(){
+    S.phase = 'board';
+    showView('board');
+    renderBoard(); renderHud();
+  }
+
+  el.board.addEventListener('click', e => {
+    const b = e.target.closest('.tile'); if(!b || b.disabled || S.phase !== 'board') return;
+    audio();
+    const col = +b.dataset.col, row = +b.dataset.row;
+    const c = S.board.cols[col], t = c.tiles[row];
+    if(t.dd) return openWager('dd', col, row);
+    showQuestion(c.cat, t.qi, boardTime(c.cat), `${CATS[c.cat].name} · ${money(t.value)}`, { value: t.value, col, row });
+  });
+
+  el.finishBtn.addEventListener('click', () => { if(S.phase === 'board') startFinal(); });
+
+  function startFinal(){
+    if(S.score <= 0) return gameOver({ noFinal: true });
+    openWager('final');
+  }
+
+  const roundDown = n => Math.floor(n / 100) * 100;
+  function setWager(v){
+    const r = el.wagerRange;
+    v = Math.min(+r.max, Math.max(+r.min, roundDown(v)));
+    r.value = v; el.wagerAmt.textContent = money(v);
+  }
+  function openWager(kind, col, row){
+    S.phase = 'wager';
+    S.pendingWager = { kind, col, row };
+    const isFinal = kind === 'final';
+    const min = isFinal ? 0 : 100;
+    let max = isFinal ? roundDown(S.score) : roundDown(Math.max(S.score, 1000));
+    if(max < min) max = min;
+    el.wagerRange.min = min; el.wagerRange.max = max; el.wagerRange.step = 100;
+    el.wagerMin.textContent = money(min); el.wagerMax.textContent = money(max);
+    if(isFinal){
+      const cat = CATS[S.board.final.cat].name;
+      el.wagerKicker.textContent = 'Final round';
+      el.wagerTitle.textContent = cat;
+      el.wagerText.textContent = `One last ${cat} question. Bet up to everything you have. You get ${finalTime(S.board.final.cat)} seconds.`;
+      sfx.level();
+    } else {
+      const cat = CATS[S.board.cols[col].cat].name;
+      el.wagerKicker.textContent = cat;
+      el.wagerTitle.textContent = 'Daily Double!';
+      el.wagerText.textContent = S.score > 1000
+        ? `Bet anything up to your full ${money(S.score)}.`
+        : 'Bet anything up to $1,000.';
+      sfx.dd();
+    }
+    setWager(max / 2);
+    el.wagerOverlay.hidden = false;
+    el.wagerBtn.focus({preventScroll:true});
+  }
+  el.wagerRange.addEventListener('input', () => setWager(+el.wagerRange.value));
+  el.wagerOverlay.querySelectorAll('[data-w]').forEach(b => b.addEventListener('click', () => {
+    const r = el.wagerRange, w = b.dataset.w;
+    setWager(w === 'min' ? +r.min : w === 'max' ? +r.max : +r.max / 2);
+  }));
+  el.wagerBtn.addEventListener('click', () => {
+    if(S.phase !== 'wager') return;
+    const w = +el.wagerRange.value, p = S.pendingWager;
+    el.wagerOverlay.hidden = true;
+    if(p.kind === 'final'){
+      const f = S.board.final;
+      showQuestion(f.cat, f.qi, finalTime(f.cat), `Final · ${money(w)}`, { value: w, isFinal: true });
+    } else {
+      const c = S.board.cols[p.col], t = c.tiles[p.row];
+      showQuestion(c.cat, t.qi, boardTime(c.cat), `Daily Double · ${money(w)}`, { value: w, col: p.col, row: p.row });
+    }
+  });
+
+  // ---------- Game over & modes ----------
+  function gameOver(opts = {}){
+    S.phase = 'over';
+    sfx.over();
+    const key = S.mode;
+    const isBest = S.score > best[key];
+    if(isBest){ best[key] = S.score; store.set(key === 'spin' ? 'kosat.best' : 'kosat.bestBoard', S.score); }
+    el.newBest.hidden = !(isBest && S.score > 0);
+    if(key === 'spin'){
+      el.overTitle.textContent = 'Game over';
+      el.overNote.hidden = true;
+      el.stat1Lbl.textContent = 'Score'; el.stat1.textContent = S.score.toLocaleString();
+      el.stat2Lbl.textContent = 'Level'; el.stat2.textContent = S.level;
+      el.stat3Lbl.textContent = 'Correct'; el.stat3.textContent = S.correct;
+      el.overBest.innerHTML = `Best score: <b>${best.spin.toLocaleString()}</b>`;
+    } else {
+      el.overTitle.textContent = opts.noFinal ? 'Game over' : 'Final score';
+      el.overNote.hidden = !opts.noFinal;
+      el.overNote.textContent = 'You need more than $0 to play the final round.';
+      el.stat1Lbl.textContent = 'Winnings'; el.stat1.textContent = money(S.score);
+      el.stat2Lbl.textContent = 'Right'; el.stat2.textContent = S.correct;
+      el.stat3Lbl.textContent = 'Wrong'; el.stat3.textContent = S.wrong;
+      el.overBest.innerHTML = `Best winnings: <b>${money(best.board)}</b>`;
+    }
+    renderBest();
+    el.overOverlay.hidden = false;
+    el.againBtn.focus({preventScroll:true});
+  }
+
+  function startMode(mode){
+    Object.assign(S, { mode, started:true, lives:MAX_LIVES, level:1, score:0, correct:0, wrong:0, levelCorrect:0,
+                       leveled:false, heartBack:false, current:null, board:null, pendingWager:null });
+    dealCats();
+    el.startOverlay.hidden = true; el.overOverlay.hidden = true;
+    audio();
+    if(mode === 'spin'){ toWheel(); el.spinBtn.focus({preventScroll:true}); }
+    else { buildBoard(); toBoard(); }
+  }
+  el.modeSpin.addEventListener('click', () => startMode('spin'));
+  el.modeBoard.addEventListener('click', () => startMode('board'));
+  el.againBtn.addEventListener('click', () => startMode(S.mode));
+  el.switchBtn.addEventListener('click', () => {
+    el.overOverlay.hidden = true;
+    S.phase = 'start'; S.started = false;
+    renderBest();
+    el.startOverlay.hidden = false;
+  });
+  el.spinBtn.addEventListener('click', spin);
+  el.hubBtn.addEventListener('click', spin);
+
+  document.addEventListener('keydown', e => {
+    if(S.phase === 'question'){
+      const k = e.key.toLowerCase();
+      if(k.length !== 1) return;
+      const idx = '12345'.indexOf(k) >= 0 ? '12345'.indexOf(k) : 'abcde'.indexOf(k);
+      if(idx >= 0 && idx < el.answers.children.length){ e.preventDefault(); answer(idx); }
+    } else if(S.phase === 'wheel' && (e.key === ' ' || e.key === 'Enter') && !(e.target instanceof HTMLButtonElement)){
+      e.preventDefault(); spin();
+    }
+  });
+
+  // ---------- Boot ----------
+  if(window.ResizeObserver) new ResizeObserver(() => { drawWheel(); lastBulbKey = ''; }).observe(el.wheelWrap);
+  else window.addEventListener('resize', () => { drawWheel(); lastBulbKey = ''; });
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(drawWheel).catch(() => {});
+
+  const hot = window.claude && window.claude.hot;
+  try{
+    if(hot && hot.snapshot) hot.snapshot(() => ({ mode:S.mode, started:S.started, lives:S.lives, level:S.level, score:S.score, correct:S.correct, wrong:S.wrong,
+      levelCorrect:S.levelCorrect, rot:mod(S.rot, 360), board:S.board, cats:S.cats, over:S.phase === 'over' }));
+  }catch(e){}
+
+  function start(data){
+    data = data || {};
+    renderMute(); renderBest();
+    if(Array.isArray(data.cats) && data.cats.length === 6 && data.cats.every(c => Q[c])) S.cats = data.cats;
+    setRot(typeof data.rot === 'number' ? data.rot : 0);
+    const resumeSpin = data.started && !data.over && data.mode !== 'board' && data.lives > 0;
+    const resumeBoard = data.started && !data.over && data.mode === 'board' && data.board && data.board.cols && data.board.cols.every(c => Q[c.cat] && c.tiles.every(t => Q[c.cat][t.qi]));
+    if(resumeSpin || resumeBoard){
+      Object.assign(S, { mode:data.mode || 'spin', started:true, lives:data.lives || MAX_LIVES, level:data.level || 1, score:data.score || 0,
+        correct:data.correct || 0, wrong:data.wrong || 0, levelCorrect:data.levelCorrect || 0, board:data.board || null });
+      el.startOverlay.hidden = true;
+      if(resumeBoard) toBoard(); else toWheel();
+    } else {
+      S.phase = 'start';
+      showView('wheel');
+      renderHud();
+      requestAnimationFrame(drawWheel);
+    }
+    requestAnimationFrame(loop);
+  }
+  if(hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});
+})();
+</script>
+</body>
+</html>
